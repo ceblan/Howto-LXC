@@ -1,6 +1,10 @@
 my_variable: "Hello, World!"
 uberrimus_username: "carlos"
 emacs_username: "carlos"
+banana_username: "carlos"
+banana_uid: 1001
+devpl_group: "devpl"
+devpl_guid: 300
 tsc_username: "concesion"
 una_variable_port: 22
 services:
