@@ -27,3 +27,16 @@
         hour: "*"
         job: "/home/carlos/bin/IPtables_banana.sh"
         state: present
+
+    - name: lo de emacs
+      command: apt build-dep -y emacs
+
+    - name: Install checkinstall
+      apt:
+        name:
+          - libtool-bin
+          - checkinstall
+          - libtree-sitter0
+          - libtree-sitter-dev
+          - xclip
+        state: present

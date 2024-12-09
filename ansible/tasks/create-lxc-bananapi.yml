@@ -332,11 +332,11 @@
     # - name: Set zsh as default shell for {{ banana_username }} in {{ DEST }}
     #   command: lxc-attach -n {{ DEST }} -u {{banana_uid }} -- sh -c "chsh -s $(which zsh)"
 
-    - name: Set SSHD to listen on port 353
+    - name: Set SSHD to listen on port 352
       lineinfile:
         path: /var/lib/lxc/{{ DEST }}/rootfs/etc/ssh/sshd_config
         regexp: '^#?Port '
-        line: 'Port 353'
+        line: 'Port 352'
         state: present
 
     - name: Restart SSHD in the LXC container

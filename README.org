@@ -452,11 +452,11 @@ host *tsc-host-1*, performing all the tasks you've outlined:
         # - name: Set zsh as default shell for {{ banana_username }} in {{ DEST }}
         #   command: lxc-attach -n {{ DEST }} -u {{banana_uid }} -- sh -c "chsh -s $(which zsh)"
 
-        - name: Set SSHD to listen on port 353
+        - name: Set SSHD to listen on port 352
           lineinfile:
             path: /var/lib/lxc/{{ DEST }}/rootfs/etc/ssh/sshd_config
             regexp: '^#?Port '
-            line: 'Port 353'
+            line: 'Port 352'
             state: present
 
         - name: Restart SSHD in the LXC container
@@ -710,35 +710,49 @@ Instalation of Package requirements
 Add jobs to cron
 
 #+begin_src yaml :tangle ansible/tasks/add_cron_jobs_bananapi.yml
----
-- name: Add cron job for root user in LXC container
-  hosts: bananapi
-  become: true  # Use this to escalate permissions to root
-  tasks:
+  ---
+  - name: Add cron job for root user in LXC container
+    hosts: bananapi
+    become: true  # Use this to escalate permissions to root
+    tasks:
 
-    - name: Add a cron job for root
-      cron:
-        name: "Goaccess"
-        minute: "*/15"
-        hour: "*"
-        job: "/home/carlos/bin/my_goaccess.sh start"
-        state: present
+      - name: Add a cron job for root
+        cron:
+          name: "Goaccess"
+          minute: "*/15"
+          hour: "*"
+          job: "/home/carlos/bin/my_goaccess.sh start"
+          state: present
 
-    - name: Add google_domains_ip_refresh.sh to cron
-      cron:
-        name: "Set ip cloudeflare Domains"
-        minute: "*/5"
-        hour: "*"
-        job: "/home/carlos/bin/google_domains_ip_refresh.sh"
-        state: present
+      - name: Add google_domains_ip_refresh.sh to cron
+        cron:
+          name: "Set ip cloudeflare Domains"
+          minute: "*/5"
+          hour: "*"
+          job: "/home/carlos/bin/google_domains_ip_refresh.sh"
+          state: present
 
-    - name: Add anti-goleores iptables rules to cron
-      cron:
-        name: "IPtables banana anti-goleores"
-        minute: "*/15"
-        hour: "*"
-        job: "/home/carlos/bin/IPtables_banana.sh"
-        state: present
+      - name: Add anti-goleores iptables rules to cron
+        cron:
+          name: "IPtables banana anti-goleores"
+          minute: "*/15"
+          hour: "*"
+          job: "/home/carlos/bin/IPtables_banana.sh"
+          state: present
+
+      - name: lo de emacs
+        command: apt build-dep -y emacs
+
+      - name: Install checkinstall
+        apt:
+          name:
+            - libtool-bin
+            - checkinstall
+            - libtree-sitter0
+            - libtree-sitter-dev
+            - xclip
+          state: present
+
 
 #+end_src
 ***** Notes:
