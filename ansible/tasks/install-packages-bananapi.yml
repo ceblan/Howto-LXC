@@ -1,0 +1,116 @@
+---
+- name: Set up bananapi packages
+  hosts: bananapi # here should be tsc-host-1 instead
+  become_method: sudo
+  become: true
+  vars_files:
+   - ./vars/vars.yml
+   #- ./vars/secrets.yml
+
+  #vars_prompt:
+    #- name: "ansible_become_pass"
+      #prompt: "Enter your sudo password in remote server"
+      #private: yes
+
+
+  tasks:
+    # - name: apt update
+    #   become: yes
+    #   command: apt update
+
+    - name: avoid tshark config to block installation #esto es para que no pregunte lo del setuid y se bloquee
+      become: yes
+      shell: echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
+
+    - name: Set APT to not install recommended packages
+      copy:
+        dest: /etc/apt/apt.conf.d/01norecommend
+        content: |
+          APT::Install-Recommends "0";
+          APT::Install-Suggests "0";
+
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      become: yes
+      become_method: sudo
+      apt:
+        name:
+          - vim
+          - net-tools
+          - sudo
+          - ripgrep
+          - fzf
+          - python3-pip
+          - cron
+          - mosh
+        state: present
+        install_recommends: no
+
+    - name: Install docker required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          - software-properties-common
+          - bash-completion
+        state: present
+
+    - name: Add Docker GPG key
+      shell: >
+        curl -fsSL https://download.docker.com/linux/debian/gpg |
+        gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/docker-archive-keyring.gpg
+
+    - name: Ensure Docker sources list file exists
+      file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: touch
+
+    - name: Set up the Docker repository
+      lineinfile:
+        path: /etc/apt/sources.list.d/docker.list
+        line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose
+        state: present
+
+    - name: Delete the /var/lib/docker directory
+      file:
+        path: /var/lib/docker
+        state: absent
+
+    - name: Create a symbolic link in /var/lib to /data/docker
+      file:
+        src: /data/docker
+        dest: /var/lib/docker
+        state: link
+
+    - name: Add user {{ banana_username }} to the docker group
+      command: usermod -aG docker carlos
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Update apt package index
+      apt:
+        update_cache: yes

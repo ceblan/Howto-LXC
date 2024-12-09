@@ -1,2 +1,3 @@
 /ansible/tasks/ssh-keys/
 /ansible/tasks/secrets.yml
+/ansible/tasks/vars/secrets.yml

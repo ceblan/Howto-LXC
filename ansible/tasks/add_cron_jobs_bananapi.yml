@@ -1,0 +1,29 @@
+---
+- name: Add cron job for root user in LXC container
+  hosts: bananapi
+  become: true  # Use this to escalate permissions to root
+  tasks:
+
+    - name: Add a cron job for root
+      cron:
+        name: "Goaccess"
+        minute: "*/15"
+        hour: "*"
+        job: "/home/carlos/bin/my_goaccess.sh start"
+        state: present
+
+    - name: Add google_domains_ip_refresh.sh to cron
+      cron:
+        name: "Set ip cloudeflare Domains"
+        minute: "*/5"
+        hour: "*"
+        job: "/home/carlos/bin/google_domains_ip_refresh.sh"
+        state: present
+
+    - name: Add anti-goleores iptables rules to cron
+      cron:
+        name: "IPtables banana anti-goleores"
+        minute: "*/15"
+        hour: "*"
+        job: "/home/carlos/bin/IPtables_banana.sh"
+        state: present
