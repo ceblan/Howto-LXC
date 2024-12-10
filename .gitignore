@@ -1,3 +1,4 @@
 /ansible/tasks/ssh-keys/
 /ansible/tasks/secrets.yml
 /ansible/tasks/vars/secrets.yml
+/ansible/tasks/files/pivpn/pivpn.unassisted.conf
