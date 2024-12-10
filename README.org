@@ -755,6 +755,9 @@ Add jobs to cron
       - name: lo de emacs
         command: apt build-dep -y emacs
 
+      - name: Restart docker
+        command: /etc/init.d/docker restart
+
       - name: Install checkinstall
         apt:
           name:
@@ -763,8 +766,41 @@ Add jobs to cron
             - libtree-sitter0
             - libtree-sitter-dev
             - xclip
+            - lsof
+            - fail2ban
+            - less
           state: present
 
+      - name: Copy jail.local to /etc/fail2ban
+        copy:
+          src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/jail.local
+          dest: /etc/fail2ban/jail.local
+          mode: '0644'
+          force: no
+
+      - name: Copy iptables-traefik443.conf to /etc/fail2ban/action.d
+        copy:
+          src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/iptables-traefik443.conf
+          dest: /etc/fail2ban/action.d/iptables-traefik443.conf
+          mode: '0644'
+          force: no
+
+      - name: Copy masscan.conf to /etc/fail2ban/action.d
+        copy:
+          src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/masscan.conf
+          dest: /etc/fail2ban/action.d/masscan.conf
+          mode: '0644'
+          force: no
+
+      - name: Copy sshd.conf to /etc/fail2ban/action.d
+        copy:
+          src:  /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/sshd.conf
+          dest: /etc/fail2ban/action.d/sshd.conf
+          mode: '0644' 
+          force: no
+
+      - name: Restart fail2ban
+        command: /etc/init.d/fail2ban restart
 
 #+end_src
 ***** Notes:
