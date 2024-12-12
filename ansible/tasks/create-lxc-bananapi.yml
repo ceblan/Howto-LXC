@@ -1,12 +1,12 @@
 ---
-- name: Set up LXC container for a bananapi
-  hosts: urganda # here should be tsc-host-1 instead
-  become: yes
-  vars_files:
-    - ./vars/vars.yml
-    - ./vars/secrets.yml
+# - name: Set up LXC container for a bananapi
+#   hosts: urganda # here should be tsc-host-1 instead
+#   become: yes
+#   vars_files:
+#     - ./vars/vars.yml
+#     - ./vars/secrets.yml
 
-  tasks:
+#   tasks:
     - name: Install LXC
       apt:
         name: lxc
@@ -404,13 +404,3 @@
     - name: Display all LXC containers
       debug:
         var: lxc_list_final.stdout_lines
-
-    - name: Call Install packages playbook
-      include_tasks: install-packages-bananapi.yml
-      vars:
-        DEST: "{{ DEST }}"
-
-    - name: Call cron jobs paybook
-      include_tasks: add_cron_jobs_bananapi.yml
-      vars:
-        DEST: "{{ DEST }}"

@@ -119,14 +119,14 @@ host *tsc-host-1*, performing all the tasks you've outlined:
 
 #+begin_src yaml :tangle ansible/tasks/create-lxc-bananapi.yml
   ---
-  - name: Set up LXC container for a bananapi
-    hosts: urganda # here should be tsc-host-1 instead
-    become: yes
-    vars_files:
-      - ./vars/vars.yml
-      - ./vars/secrets.yml
+  # - name: Set up LXC container for a bananapi
+  #   hosts: urganda # here should be tsc-host-1 instead
+  #   become: yes
+  #   vars_files:
+  #     - ./vars/vars.yml
+  #     - ./vars/secrets.yml
 
-    tasks:
+  #   tasks:
       - name: Install LXC
         apt:
           name: lxc
@@ -524,16 +524,6 @@ host *tsc-host-1*, performing all the tasks you've outlined:
       - name: Display all LXC containers
         debug:
           var: lxc_list_final.stdout_lines
-
-      - name: Call Install packages playbook
-        include_tasks: install-packages-bananapi.yml
-        vars:
-          DEST: "{{ DEST }}"
-
-      - name: Call cron jobs paybook
-        include_tasks: add_cron_jobs_bananapi.yml
-        vars:
-          DEST: "{{ DEST }}"
 #+end_src
 
 
@@ -596,144 +586,123 @@ host *tsc-host-1*, performing all the tasks you've outlined:
 
 Instalation of Package requirements
 
-
-#+begin_src yaml :tangle ansible/tasks/mas_tareas.yml
-  ---
-  - name: Set up bananapi packages
-    hosts: bananapi # here should be tsc-host-1 instead
-    become_method: sudo
-    become: true
-
-    tasks:
-
-      - name: Call Install packages playbook
-        include_tasks: install-packages-bananapi.yml
-        vars:
-          DEST: "{{ DEST }}"
-
-      - name: Call cron jobs paybook
-        include_tasks: add_cron_jobs_bananapi.yml
-        vars:
-          DEST: "{{ DEST }}"
-
-#+end_src
 #+begin_src yaml :tangle ansible/tasks/install-packages-bananapi.yml
-  ---
-  # - name: Set up bananapi packages
-  #   hosts: bananapi # here should be tsc-host-1 instead
-  #   become_method: sudo
-  #   become: true
-  #   vars_files:
-  #    - ./vars/vars.yml
-  #    #- ./vars/secrets.yml
+---
+# - name: Set up bananapi packages
+#   hosts: bananapi # here should be tsc-host-1 instead
+#   become_method: sudo
+#   become: true
+#   vars_files:
+#    - ./vars/vars.yml
+#    #- ./vars/secrets.yml
 
-  #   #vars_prompt:
-  #     #- name: "ansible_become_pass"
-  #       #prompt: "Enter your sudo password in remote server"
-  #       #private: yes
+#   #vars_prompt:
+#     #- name: "ansible_become_pass"
+#       #prompt: "Enter your sudo password in remote server"
+#       #private: yes
 
 
-    # tasks:
-      # - name: apt update
-      #   become: yes
-      #   command: apt update
+  # tasks:
+    # - name: apt update
+    #   become: yes
+    #   command: apt update
 
-      - name: avoid tshark config to block installation #esto es para que no pregunte lo del setuid y se bloquee
-        become: yes
-        shell: echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
+    - name: avoid tshark config to block installation #esto es para que no pregunte lo del setuid y se bloquee
+      become: yes
+      shell: echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
 
-      - name: Set APT to not install recommended packages
-        copy:
-          dest: /etc/apt/apt.conf.d/01norecommend
-          content: |
-            APT::Install-Recommends "0";
-            APT::Install-Suggests "0";
+    - name: Set APT to not install recommended packages
+      copy:
+        dest: /etc/apt/apt.conf.d/01norecommend
+        content: |
+          APT::Install-Recommends "0";
+          APT::Install-Suggests "0";
 
-      - name: Update APT package index
-        apt:
-          update_cache: yes
+    - name: Update APT package index
+      apt:
+        update_cache: yes
 
-      - name: Install required packages
-        become: yes
-        become_method: sudo
-        apt:
-          name:
-            - vim
-            - net-tools
-            - sudo
-            - ripgrep
-            - fzf
-            - python3-pip
-            - cron
-            - mosh
-          state: present
-          install_recommends: no
+    - name: Install required packages
+      become: yes
+      become_method: sudo
+      apt:
+        name:
+          - vim
+          - net-tools
+          - sudo
+          - ripgrep
+          - fzf
+          - python3-pip
+          - cron
+          - mosh
+        state: present
+        install_recommends: no
 
-      - name: Install docker required packages
-        apt:
-          name:
-            - apt-transport-https
-            - ca-certificates
-            - curl
-            - gnupg2
-            - software-properties-common
-            - bash-completion
-          state: present
+    - name: Install docker required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          - software-properties-common
+          - bash-completion
+        state: present
 
-      - name: Add Docker GPG key
-        shell: >
-          curl -fsSL https://download.docker.com/linux/debian/gpg |
-          gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-        args:
-          creates: /usr/share/keyrings/docker-archive-keyring.gpg
+    - name: Add Docker GPG key
+      shell: >
+        curl -fsSL https://download.docker.com/linux/debian/gpg |
+        gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/docker-archive-keyring.gpg
 
-      - name: Ensure Docker sources list file exists
-        file:
-          path: /etc/apt/sources.list.d/docker.list
-          state: touch
+    - name: Ensure Docker sources list file exists
+      file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: touch
 
-      - name: Set up the Docker repository
-        lineinfile:
-          path: /etc/apt/sources.list.d/docker.list
-          line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
-          state: present
+    - name: Set up the Docker repository
+      lineinfile:
+        path: /etc/apt/sources.list.d/docker.list
+        line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+        state: present
 
-      - name: Update APT package index
-        apt:
-          update_cache: yes
+    - name: Update APT package index
+      apt:
+        update_cache: yes
 
-      - name: Install Docker
-        apt:
-          name:
-            - docker-ce
-            - docker-ce-cli
-            - containerd.io
-            - docker-compose
-          state: present
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose
+        state: present
 
-      - name: Delete the /var/lib/docker directory
-        file:
-          path: /var/lib/docker
-          state: absent
+    - name: Delete the /var/lib/docker directory
+      file:
+        path: /var/lib/docker
+        state: absent
 
-      - name: Create a symbolic link in /var/lib to /data/docker
-        file:
-          src: /data/docker
-          dest: /var/lib/docker
-          state: link
+    - name: Create a symbolic link in /var/lib to /data/docker
+      file:
+        src: /data/docker
+        dest: /var/lib/docker
+        state: link
 
-      - name: Add user {{ banana_username }} to the docker group
-        command: usermod -aG docker carlos
+    - name: Add user {{ banana_username }} to the docker group
+      command: usermod -aG docker carlos
 
-      - name: Start and enable Docker
-        systemd:
-          name: docker
-          state: started
-          enabled: yes
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
 
-      - name: Update apt package index
-        apt:
-          update_cache: yes
+    - name: Update apt package index
+      apt:
+        update_cache: yes
 #+end_src
 
 ***** Notes:
@@ -751,85 +720,85 @@ Instalation of Package requirements
 Add jobs to cron
 
 #+begin_src yaml :tangle ansible/tasks/add_cron_jobs_bananapi.yml
-      ---
-      # - name: Add cron job for root user in LXC container
-      #   hosts: bananapi
-      #   become: true  # Use this to escalate permissions to root
-      #   tasks:
+---
+# - name: Add cron job for root user in LXC container
+#   hosts: bananapi
+#   become: true  # Use this to escalate permissions to root
+#   tasks:
 
-          - name: Add a cron job for root
-            cron:
-              name: "Goaccess"
-              minute: "*/15"
-              hour: "*"
-              job: "/home/carlos/bin/my_goaccess.sh start"
-              state: present
+    - name: Add a cron job for root
+      cron:
+        name: "Goaccess"
+        minute: "*/15"
+        hour: "*"
+        job: "/home/carlos/bin/my_goaccess.sh start"
+        state: present
 
-          - name: Add google_domains_ip_refresh.sh to cron
-            cron:
-              name: "Set ip cloudeflare Domains"
-              minute: "*/5"
-              hour: "*"
-              job: "/home/carlos/bin/google_domains_ip_refresh.sh"
-              state: present
+    - name: Add google_domains_ip_refresh.sh to cron
+      cron:
+        name: "Set ip cloudeflare Domains"
+        minute: "*/5"
+        hour: "*"
+        job: "/home/carlos/bin/google_domains_ip_refresh.sh"
+        state: present
 
-          - name: Add anti-goleores iptables rules to cron
-            cron:
-              name: "IPtables banana anti-goleores"
-              minute: "*/15"
-              hour: "*"
-              job: "/home/carlos/bin/IPtables_banana.sh"
-              state: present
+    - name: Add anti-goleores iptables rules to cron
+      cron:
+        name: "IPtables banana anti-goleores"
+        minute: "*/15"
+        hour: "*"
+        job: "/home/carlos/bin/IPtables_banana.sh"
+        state: present
 
-          - name: lo de emacs
-            command: apt build-dep -y emacs
+    - name: lo de emacs
+      command: apt build-dep -y emacs
 
-          - name: Restart docker
-            command: /etc/init.d/docker restart
+    - name: Restart docker
+      command: /etc/init.d/docker restart
 
-          - name: Install checkinstall
-            apt:
-              name:
-                - libtool-bin
-                - checkinstall
-                - libtree-sitter0
-                - libtree-sitter-dev
-                - xclip
-                - lsof
-                - fail2ban
-                - less
-              state: present
+    - name: Install checkinstall
+      apt:
+        name:
+          - libtool-bin
+          - checkinstall
+          - libtree-sitter0
+          - libtree-sitter-dev
+          - xclip
+          - lsof
+          - fail2ban
+          - less
+        state: present
 
-          - name: Copy jail.local to /etc/fail2ban
-            copy:
-              src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/jail.local
-              dest: /etc/fail2ban/jail.local
-              mode: '0644'
-              force: no
+    - name: Copy jail.local to /etc/fail2ban
+      copy:
+        src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/jail.local
+        dest: /etc/fail2ban/jail.local
+        mode: '0644'
+        force: no
 
-          - name: Copy iptables-traefik443.conf to /etc/fail2ban/action.d
-            copy:
-              src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/iptables-traefik443.conf
-              dest: /etc/fail2ban/action.d/iptables-traefik443.conf
-              mode: '0644'
-              force: no
+    - name: Copy iptables-traefik443.conf to /etc/fail2ban/action.d
+      copy:
+        src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/iptables-traefik443.conf
+        dest: /etc/fail2ban/action.d/iptables-traefik443.conf
+        mode: '0644'
+        force: no
 
-          - name: Copy masscan.conf to /etc/fail2ban/action.d
-            copy:
-              src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/masscan.conf
-              dest: /etc/fail2ban/action.d/masscan.conf
-              mode: '0644'
-              force: no
+    - name: Copy masscan.conf to /etc/fail2ban/action.d
+      copy:
+        src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/masscan.conf
+        dest: /etc/fail2ban/action.d/masscan.conf
+        mode: '0644'
+        force: no
 
-          - name: Copy sshd.conf to /etc/fail2ban/action.d
-            copy:
-              src:  /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/sshd.conf
-              dest: /etc/fail2ban/action.d/sshd.conf
-              mode: '0644' 
-              force: no
+    - name: Copy sshd.conf to /etc/fail2ban/action.d
+      copy:
+        src:  /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/sshd.conf
+        dest: /etc/fail2ban/action.d/sshd.conf
+        mode: '0644' 
+        force: no
 
-          - name: Restart fail2ban
-            command: /etc/init.d/fail2ban restart
+    - name: Restart fail2ban
+      command: /etc/init.d/fail2ban restart
 
     # INSTALL PIVPN UNUTTENDEDº
     # curl -L https://install.pivpn.io > install.sh
@@ -845,3 +814,55 @@ Add jobs to cron
      ansible-playbook -i inventory.ini tasks/add_cron_jobs_bananapi.yml -l bananapi --extra-vars "DEST=bananapi" 
    #+end_src
 
+
+*** Instala Emacs en banana
+
+#+begin_src yaml :tangle ansible/tasks/emacs.yml  
+---
+  - name: Execute checkinstall command
+    become: true
+    become_user: carlos
+    command: sudo checkinstall --pkgversion 29.4 -y -D sudo make install
+    args:
+      chdir: /home/carlos/git-carlos/emacs
+#+end_src
+
+*** bananapi apply all previous playbooks
+
+#+begin_src yaml :tangle ansible/tasks/prepara-bananapi.yml
+---
+  - name: Prepara bananapi
+    hosts: urganda
+    become: yes
+    vars_files:
+      - ./vars/vars.yml
+      - ./vars/secrets.yml
+    tasks:
+      - name: Create LXC container
+        include_tasks: create-lxc-bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
+
+  - name: Set up bananapi packages
+    hosts: bananapi
+    become_method: sudo
+    become: true
+    vars_files:
+      - ./vars/vars.yml
+
+    tasks:
+      - name: Call Install packages playbook
+        include_tasks: install-packages-bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
+
+      - name: Call cron jobs paybook
+        include_tasks: add_cron_jobs_bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
+
+      - name: Install emacs
+        include_tasks: emacs.yml
+        vars:
+          DEST: "{{ DEST }}"
+#+end_src

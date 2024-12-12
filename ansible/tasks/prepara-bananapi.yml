@@ -1,0 +1,35 @@
+---
+  - name: Prepara bananapi
+    hosts: urganda
+    become: yes
+    vars_files:
+      - ./vars/vars.yml
+      - ./vars/secrets.yml
+    tasks:
+      - name: Create LXC container
+        include_tasks: create-lxc-bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
+
+  - name: Set up bananapi packages
+    hosts: bananapi
+    become_method: sudo
+    become: true
+    vars_files:
+      - ./vars/vars.yml
+
+    tasks:
+      - name: Call Install packages playbook
+        include_tasks: install-packages-bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
+
+      - name: Call cron jobs paybook
+        include_tasks: add_cron_jobs_bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
+
+      - name: Install emacs
+        include_tasks: emacs.yml
+        vars:
+          DEST: "{{ DEST }}"
