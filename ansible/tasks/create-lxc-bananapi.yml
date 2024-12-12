@@ -292,21 +292,21 @@
         path: "/var/lib/lxc/{{ DEST }}/rootfs/data"
         state: directory
 
-    - name: Ensure /data is mounted in the LXC container
+    - name: Let /data be mounted in the LXC container
       lineinfile:
         path: "/var/lib/lxc/{{ DEST }}/config"
         line: "lxc.mount.entry = /home/carlos/data/Banana_LXC/data data none bind 0 0"
         state: present
 
     - name: Delete /home. It will be mounted
-      command: lxc-attach -n {{ DEST }} -- sh -c "rm -rf /home"
+      command: rm -rf /var/lib/lxc/{{ DEST }}/rootfs/home
 
     - name: Ensure the directory home exists for mounting
       file:
         path: "/var/lib/lxc/{{ DEST }}/rootfs/home"
         state: directory
 
-    - name: Ensure /home is mounted in the LXC container
+    - name: Let /home be mounted in the LXC container
       lineinfile:
         path: "/var/lib/lxc/{{ DEST }}/config"
         line: "lxc.mount.entry = /home/carlos/data/Banana_LXC/home home none bind 0 0"
@@ -339,8 +339,8 @@
         line: 'Port 352'
         state: present
 
-    - name: Restart SSHD in the LXC container
-      command: lxc-attach {{ DEST }} -- sh -c "systemctl restart sshd"
+    # - name: Restart SSHD in the LXC container
+    #   command: lxc-attach {{ DEST }} -- sh -c "systemctl restart sshd"
 
     - name: Stop {{ DEST }} container if it is running
       command: lxc-stop -n {{ DEST }}
@@ -371,13 +371,24 @@
         name: lxc-net
         state: restarted
 
-    - name: Replace line in /var/lib/lxc/{{ DEST }}/rootfs/etc/passwdfor user carlos
+    - name: Replace line in /var/lib/lxc/{{ DEST }}/rootfs/etc/passwd for user carlos
       lineinfile:
         path: /var/lib/lxc/{{ DEST }}/rootfs/etc/passwd
         regexp: '^carlos:x:.*'
         line: 'carlos:x:1015:300:carlos,,,:/home/carlos:/bin/zsh'
         state: present
 
+    # - name: Let /dev/net/tun for openvpn to work
+    #   lineinfile:
+    #     path: "/var/lib/lxc/{{ DEST }}/config"
+    #     line: "lxc.cgroup2.devices.allow: c 10:200 rwm"
+    #     state: present
+
+    # - name: Mount /dev/net for openvpn to work
+    #   lineinfile:
+    #     path: "/var/lib/lxc/{{ DEST }}/config"
+    #     line: "lxc.mount.entry: /dev/net dev/net none bind,create=dir"
+    #     state: present
 
     - name: Start LXC container {{ DEST }}
       command: lxc-start -n {{ DEST }}
@@ -393,3 +404,13 @@
     - name: Display all LXC containers
       debug:
         var: lxc_list_final.stdout_lines
+
+    - name: Call Install packages playbook
+      include_tasks: install-packages-bananapi.yml
+      vars:
+        DEST: "{{ DEST }}"
+
+    - name: Call cron jobs paybook
+      include_tasks: add_cron_jobs_bananapi.yml
+      vars:
+        DEST: "{{ DEST }}"

@@ -407,18 +407,6 @@ host *tsc-host-1*, performing all the tasks you've outlined:
       - name: Create group {{ devpl_group}} with GID {{ devpl_gid }} in the LXC container
         command: lxc-attach -n {{ DEST }} -- echo "{{devpl_group}}:x:{{ devpl_gid}}:{{banana_username}}" >> /etc/group 
 
-      - name: Let /dev/net/tun for openvpn to work
-        lineinfile:
-          path: "/var/lib/lxc/{{ DEST }}/config"
-          line: "lxc.cgroup2.devices.allow: c 10:200 rwm"
-          state: present
-
-      - name: Mount /dev/net for openvpn to work
-        lineinfile:
-          path: "/var/lib/lxc/{{ DEST }}/config"
-          line: "lxc.mount.entry: /dev/net dev/net none bind,create=dir"
-          state: present
-
       - name: Ensure the directory data exists for mounting
         file:
           path: "/var/lib/lxc/{{ DEST }}/rootfs/data"
@@ -431,7 +419,7 @@ host *tsc-host-1*, performing all the tasks you've outlined:
           state: present
 
       - name: Delete /home. It will be mounted
-        command: lxc-attach -n {{ DEST }} -- sh -c "rm -rf /home"
+        command: rm -rf /var/lib/lxc/{{ DEST }}/rootfs/home
 
       - name: Ensure the directory home exists for mounting
         file:
@@ -471,8 +459,8 @@ host *tsc-host-1*, performing all the tasks you've outlined:
           line: 'Port 352'
           state: present
 
-      - name: Restart SSHD in the LXC container
-        command: lxc-attach {{ DEST }} -- sh -c "systemctl restart sshd"
+      # - name: Restart SSHD in the LXC container
+      #   command: lxc-attach {{ DEST }} -- sh -c "systemctl restart sshd"
 
       - name: Stop {{ DEST }} container if it is running
         command: lxc-stop -n {{ DEST }}
@@ -503,13 +491,24 @@ host *tsc-host-1*, performing all the tasks you've outlined:
           name: lxc-net
           state: restarted
 
-      - name: Replace line in /var/lib/lxc/{{ DEST }}/rootfs/etc/passwdfor user carlos
+      - name: Replace line in /var/lib/lxc/{{ DEST }}/rootfs/etc/passwd for user carlos
         lineinfile:
           path: /var/lib/lxc/{{ DEST }}/rootfs/etc/passwd
           regexp: '^carlos:x:.*'
           line: 'carlos:x:1015:300:carlos,,,:/home/carlos:/bin/zsh'
           state: present
 
+      # - name: Let /dev/net/tun for openvpn to work
+      #   lineinfile:
+      #     path: "/var/lib/lxc/{{ DEST }}/config"
+      #     line: "lxc.cgroup2.devices.allow: c 10:200 rwm"
+      #     state: present
+
+      # - name: Mount /dev/net for openvpn to work
+      #   lineinfile:
+      #     path: "/var/lib/lxc/{{ DEST }}/config"
+      #     line: "lxc.mount.entry: /dev/net dev/net none bind,create=dir"
+      #     state: present
 
       - name: Start LXC container {{ DEST }}
         command: lxc-start -n {{ DEST }}
@@ -526,6 +525,15 @@ host *tsc-host-1*, performing all the tasks you've outlined:
         debug:
           var: lxc_list_final.stdout_lines
 
+      - name: Call Install packages playbook
+        include_tasks: install-packages-bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
+
+      - name: Call cron jobs paybook
+        include_tasks: add_cron_jobs_bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
 #+end_src
 
 
@@ -588,23 +596,44 @@ host *tsc-host-1*, performing all the tasks you've outlined:
 
 Instalation of Package requirements
 
-#+begin_src yaml :tangle ansible/tasks/install-packages-bananapi.yml
+
+#+begin_src yaml :tangle ansible/tasks/mas_tareas.yml
   ---
   - name: Set up bananapi packages
     hosts: bananapi # here should be tsc-host-1 instead
     become_method: sudo
     become: true
-    vars_files:
-     - ./vars/vars.yml
-     #- ./vars/secrets.yml
-
-    #vars_prompt:
-      #- name: "ansible_become_pass"
-        #prompt: "Enter your sudo password in remote server"
-        #private: yes
-
 
     tasks:
+
+      - name: Call Install packages playbook
+        include_tasks: install-packages-bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
+
+      - name: Call cron jobs paybook
+        include_tasks: add_cron_jobs_bananapi.yml
+        vars:
+          DEST: "{{ DEST }}"
+
+#+end_src
+#+begin_src yaml :tangle ansible/tasks/install-packages-bananapi.yml
+  ---
+  # - name: Set up bananapi packages
+  #   hosts: bananapi # here should be tsc-host-1 instead
+  #   become_method: sudo
+  #   become: true
+  #   vars_files:
+  #    - ./vars/vars.yml
+  #    #- ./vars/secrets.yml
+
+  #   #vars_prompt:
+  #     #- name: "ansible_become_pass"
+  #       #prompt: "Enter your sudo password in remote server"
+  #       #private: yes
+
+
+    # tasks:
       # - name: apt update
       #   become: yes
       #   command: apt update
@@ -722,90 +751,90 @@ Instalation of Package requirements
 Add jobs to cron
 
 #+begin_src yaml :tangle ansible/tasks/add_cron_jobs_bananapi.yml
-    ---
-    - name: Add cron job for root user in LXC container
-      hosts: bananapi
-      become: true  # Use this to escalate permissions to root
-      tasks:
+      ---
+      # - name: Add cron job for root user in LXC container
+      #   hosts: bananapi
+      #   become: true  # Use this to escalate permissions to root
+      #   tasks:
 
-        - name: Add a cron job for root
-          cron:
-            name: "Goaccess"
-            minute: "*/15"
-            hour: "*"
-            job: "/home/carlos/bin/my_goaccess.sh start"
-            state: present
+          - name: Add a cron job for root
+            cron:
+              name: "Goaccess"
+              minute: "*/15"
+              hour: "*"
+              job: "/home/carlos/bin/my_goaccess.sh start"
+              state: present
 
-        - name: Add google_domains_ip_refresh.sh to cron
-          cron:
-            name: "Set ip cloudeflare Domains"
-            minute: "*/5"
-            hour: "*"
-            job: "/home/carlos/bin/google_domains_ip_refresh.sh"
-            state: present
+          - name: Add google_domains_ip_refresh.sh to cron
+            cron:
+              name: "Set ip cloudeflare Domains"
+              minute: "*/5"
+              hour: "*"
+              job: "/home/carlos/bin/google_domains_ip_refresh.sh"
+              state: present
 
-        - name: Add anti-goleores iptables rules to cron
-          cron:
-            name: "IPtables banana anti-goleores"
-            minute: "*/15"
-            hour: "*"
-            job: "/home/carlos/bin/IPtables_banana.sh"
-            state: present
+          - name: Add anti-goleores iptables rules to cron
+            cron:
+              name: "IPtables banana anti-goleores"
+              minute: "*/15"
+              hour: "*"
+              job: "/home/carlos/bin/IPtables_banana.sh"
+              state: present
 
-        - name: lo de emacs
-          command: apt build-dep -y emacs
+          - name: lo de emacs
+            command: apt build-dep -y emacs
 
-        - name: Restart docker
-          command: /etc/init.d/docker restart
+          - name: Restart docker
+            command: /etc/init.d/docker restart
 
-        - name: Install checkinstall
-          apt:
-            name:
-              - libtool-bin
-              - checkinstall
-              - libtree-sitter0
-              - libtree-sitter-dev
-              - xclip
-              - lsof
-              - fail2ban
-              - less
-            state: present
+          - name: Install checkinstall
+            apt:
+              name:
+                - libtool-bin
+                - checkinstall
+                - libtree-sitter0
+                - libtree-sitter-dev
+                - xclip
+                - lsof
+                - fail2ban
+                - less
+              state: present
 
-        - name: Copy jail.local to /etc/fail2ban
-          copy:
-            src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/jail.local
-            dest: /etc/fail2ban/jail.local
-            mode: '0644'
-            force: no
+          - name: Copy jail.local to /etc/fail2ban
+            copy:
+              src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/jail.local
+              dest: /etc/fail2ban/jail.local
+              mode: '0644'
+              force: no
 
-        - name: Copy iptables-traefik443.conf to /etc/fail2ban/action.d
-          copy:
-            src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/iptables-traefik443.conf
-            dest: /etc/fail2ban/action.d/iptables-traefik443.conf
-            mode: '0644'
-            force: no
+          - name: Copy iptables-traefik443.conf to /etc/fail2ban/action.d
+            copy:
+              src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/iptables-traefik443.conf
+              dest: /etc/fail2ban/action.d/iptables-traefik443.conf
+              mode: '0644'
+              force: no
 
-        - name: Copy masscan.conf to /etc/fail2ban/action.d
-          copy:
-            src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/masscan.conf
-            dest: /etc/fail2ban/action.d/masscan.conf
-            mode: '0644'
-            force: no
+          - name: Copy masscan.conf to /etc/fail2ban/action.d
+            copy:
+              src: /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/masscan.conf
+              dest: /etc/fail2ban/action.d/masscan.conf
+              mode: '0644'
+              force: no
 
-        - name: Copy sshd.conf to /etc/fail2ban/action.d
-          copy:
-            src:  /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/sshd.conf
-            dest: /etc/fail2ban/action.d/sshd.conf
-            mode: '0644' 
-            force: no
+          - name: Copy sshd.conf to /etc/fail2ban/action.d
+            copy:
+              src:  /home/carlos/.dotfiles/configurations/bananapi/etc/fail2ban/action.d/sshd.conf
+              dest: /etc/fail2ban/action.d/sshd.conf
+              mode: '0644' 
+              force: no
 
-        - name: Restart fail2ban
-          command: /etc/init.d/fail2ban restart
+          - name: Restart fail2ban
+            command: /etc/init.d/fail2ban restart
 
-  # INSTALL PIVPN UNUTTENDED
-  # curl -L https://install.pivpn.io > install.sh
-  # chmod +x install.sh
-  # ./install.sh --unattended options.conf
+    # INSTALL PIVPN UNUTTENDEDº
+    # curl -L https://install.pivpn.io > install.sh
+    # chmod +x install.sh
+    # ./install.sh --unattended options.conf
 #+end_src
 ***** Notes:
 

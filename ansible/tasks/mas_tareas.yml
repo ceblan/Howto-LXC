@@ -1,0 +1,17 @@
+---
+- name: Set up bananapi packages
+  hosts: bananapi # here should be tsc-host-1 instead
+  become_method: sudo
+  become: true
+
+  tasks:
+
+    - name: Call Install packages playbook
+      include_tasks: install-packages-bananapi.yml
+      vars:
+        DEST: "{{ DEST }}"
+
+    - name: Call cron jobs paybook
+      include_tasks: add_cron_jobs_bananapi.yml
+      vars:
+        DEST: "{{ DEST }}"
