@@ -18,19 +18,19 @@
 This note contains some recipes for creating and configuring LXC containers to
 run:
 
-1. TRAEFIK.
+1. BR-1.
 
-** TRAEFIK setup
+** BR-1 setup
 
-We split the TRAEFIK set up in three stages, each one with its own ansible
+We split the BR-1 set up in three stages, each one with its own ansible
 playbook:
 
-1. [[id:214611e0-4085-451e-bfb1-fba2f6a2152e][TRAEFIK lxc playbook]]
-2. [[id:6a9266c3-768a-4d72-8248-38aaae095445][TRAEFIK packages installation]]
+1. [[id:214611e0-4085-451e-bfb1-fba2f6a2152e][BR-1 lxc playbook]]
+2. [[id:6a9266c3-768a-4d72-8248-38aaae095445][BR-1 packages installation]]
 
-*** TRAEFIK LXC initial setup
+*** BR-1 LXC initial setup
 
-Below re the tasks as well as some tips about how to provision a TRAEFIK using
+Below re the tasks as well as some tips about how to provision a BR-1 using
 LXC
 
 **** How to creadirte a LXC debian bookworm container in debian:
@@ -45,22 +45,22 @@ To create an LXC Debian Bookworm container in Debian, follow these steps:
 
 2. *Create a directory for your container*:
    #+begin_src shell :tangle no
-   sudo mkdir -p /var/lib/lxc/TRAEFIK
+   sudo mkdir -p /var/lib/lxc/BR-1
    #+end_src
 
 3. *Create the container*:
    #+begin_src shell :tangle no
-     sudo lxc-create --name TRAEFIK --template download -- --dist debian --release bookworm --arch amd64
+     sudo lxc-create --name BR-1 --template download -- --dist debian --release bookworm --arch amd64
    #+end_src
 
 4. *Start the container*:
    #+begin_src shell :tangle no
-   sudo lxc-start -n TRAEFIK
+   sudo lxc-start -n BR-1
    #+end_src
 
 5. *Access the container’s shell*:
    #+begin_src shell :tangle no
-   sudo lxc-attach -n TRAEFIK
+   sudo lxc-attach -n BR-1
    #+end_src
 
 You now have a running Debian Bookworm container!
@@ -71,22 +71,22 @@ To delete or remove an LXC container, follow these steps:
 
 1. *Stop the container* (if it is running):
    #+begin_src shell :tangle no
-   sudo lxc-stop -n TRAEFIK
+   sudo lxc-stop -n BR-1
    #+end_src
 
 2. *Delete the container*:
    #+begin_src shell :tangle no
-   sudo lxc-destroy -n TRAEFIK
+   sudo lxc-destroy -n BR-1
    #+end_src
 
-After these commands, the =TRAEFIK= LXC container will be removed from your
+After these commands, the =BR-1= LXC container will be removed from your
 system.
 
 **** How to make the container to get same ip address every start:
 
 To assign a static IP address to your LXC container, you can follow these steps:
 
-1. Stop TRAEFIK container
+1. Stop BR-1 container
 2. Uncomment the line "LXC_DHCP_CONFILE=/etc/dnsmasq.conf"
 3. as root in the server machine do
    #+begin_src shell :tangle no
@@ -116,23 +116,23 @@ addresses.
 :ID:       214611e0-4085-451e-bfb1-fba2f6a2152e
 :END:
 
-Below there is an Ansible playbook that sets up the TRAEFIK container (lxc) on the
+Below there is an Ansible playbook that sets up the BR-1 container (lxc) on the
 host *tsc-host-1*, performing all the tasks you've outlined:
 
-#+begin_src yaml :tangle ansible/tasks/create-lxc-TRAEFIK.yml
+#+begin_src yaml :tangle ansible/tasks/create-lxc-BR-1.yml
 
 ---
-- name: Set up LXC container for a TRAEFIK
+- name: Set up LXC container for a BR-1
   hosts: all # here should be tsc-host-1 instead
   become: yes
   vars_files:
     - vars.yml
   #vars:
-  #  DEST: TRAEFIK  # remove this line if "--extra-vars "DEST=TRAEFIK" is passed when calling ansible-playbook
+  #  DEST: BR-1  # remove this line if "--extra-vars "DEST=BR-1" is passed when calling ansible-playbook
 
   tasks:
     - name: Install LXC
-      apt:
+      dnf:
         name: lxc
         state: present
         update_cache: yes
@@ -500,8 +500,8 @@ host *tsc-host-1*, performing all the tasks you've outlined:
    shared-keys to avoid ssh problems when container is regenerated
     #+begin_src sh :tangle no
       # this file is ansible.cfg in the root of the project
-      sudo mkdir -p ssh-keys/TRAEFIK
-      sudo cp /etc/ssh/ssh_host* ssh-keys/TRAEFIK
+      sudo mkdir -p ssh-keys/BR-1
+      sudo cp /etc/ssh/ssh_host* ssh-keys/BR-1
       sudo mkdir -p ssh-keys/shared
       ssh-keygen -t rsa -b 2048 -f ./ssh-keys/shared/id_rsa_lxc
    #+end_src
@@ -516,21 +516,21 @@ host *tsc-host-1*, performing all the tasks you've outlined:
      uberrimus ansible_host=127.0.0.1
      tpcc-host-1 ansible_host=172.30.2.3
      [lxc_guests]
-     TRAEFIK ansible_hosts=10.0.3.40
-     TRAEFIK ansible_user=concesion
-     TRAEFIK ansible_hosts=10.0.3.11
-     TRAEFIK ansible_user=concesion
-     TRAEFIK-2 ansible_hosts=10.0.3.12
-     TRAEFIK-2 ansible_user=concesion
+     BR-1 ansible_hosts=10.0.3.40
+     BR-1 ansible_user=concesion
+     BR-1 ansible_hosts=10.0.3.11
+     BR-1 ansible_user=concesion
+     BR-1-2 ansible_hosts=10.0.3.12
+     BR-1-2 ansible_user=concesion
      #+end_src
   
 5. Run the playbook with:
    #+begin_src shell :tangle no
      cd ansible
-     ansible-playbook -i inventory.ini tasks/create-lxc-TRAEFIK.yml --extra-vars "DEST=TRAEFIK"
+     ansible-playbook -i inventory.ini tasks/create-lxc-BR-1.yml --extra-vars "DEST=BR-1"
    #+end_src
  
-*** TRAEFIK packages installation.
+*** BR-1 packages installation.
 
 **** Various packages
 :PROPERTIES:
@@ -539,10 +539,10 @@ host *tsc-host-1*, performing all the tasks you've outlined:
 
 Instalation of Package requirements
 
-#+begin_src yaml :tangle ansible/tasks/install-packages-TRAEFIK.yml
+#+begin_src yaml :tangle ansible/tasks/install-packages-BR-1.yml
 ---
-- name: Set up TRAEFIK packages
-  hosts: TRAEFIK # here should be tsc-host-1 instead
+- name: Set up BR-1 packages
+  hosts: BR-1 # here should be tsc-host-1 instead
   become_method: sudo
   become: true
   vars_files:
@@ -608,7 +608,7 @@ Instalation of Package requirements
         cache_valid_time: 3600  # 1 hora
 
     - name: Instalar Docker CE
-      apt:
+      dnf:
         name: docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin
         state: present
 
@@ -636,5 +636,5 @@ Instalation of Package requirements
 1. Run the playbook with:
    #+begin_src shell :tangle no
      cd ansible 
-     ansible-playbook -i inventory.ini tasks/install-packages-TRAEFIK.yml -l TRAEFIK
+     ansible-playbook -i inventory.ini tasks/install-packages-BR-1.yml -l BR-1
    #+end_src
