@@ -43,7 +43,6 @@
           - libjpeg-dev
           - libpng-dev
           - libcurl4-openssl-dev
-          - liblivemedia-dev
           - libavcodec-dev
           - libavformat-dev
           - libswscale-dev
