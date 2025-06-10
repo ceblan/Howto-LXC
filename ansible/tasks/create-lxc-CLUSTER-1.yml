@@ -218,10 +218,16 @@
       command: lxc-attach -n {{ DEST }} -- usermod -aG devpl {{ lxc_username }}
 
     - name: create git-carlos
-      command: lxc-attach -n {{ DEST }} -- mkdir -p /home/{{ lxc_username }}/git-carlos/git-hub
+      command: lxc-attach -n {{ DEST }} -- mkdir -p /home/{{ lxc_username }}/git-carlos
 
     - name: chown git-carlos
       command: lxc-attach -n {{ DEST }} -- chown -R {{ lxc_username }}:{{ lxc_username }} /home/{{ lxc_username }}/git-carlos
+
+    - name: create git-hub
+      command: lxc-attach -n {{ DEST }} -- mkdir -p /home/{{ lxc_username }}/git-hub
+
+    - name: chown git-carlos
+      command: lxc-attach -n {{ DEST }} -- chown -R {{ lxc_username }}:{{ lxc_username }} /home/{{ lxc_username }}/git-hub
 
     - name: Add user {{ lxc_username }} to the sudo group
       command: lxc-attach -n {{ DEST }} -- usermod -aG sudo {{ lxc_username }}
@@ -288,17 +294,17 @@
     - name: Update sources
       command: lxc-attach -n {{ DEST }} -- sh -c "apt-get update"
 
-    # - name: Add mount entry to git-carlos
-    #   lineinfile:
-    #     path: /var/lib/lxc/{{ DEST }}/config
-    #     line: "lxc.mount.entry = /home/sice/git-sice home/{{ lxc_username }}/git-carlos none bind 0 0"
-    #     create: yes # Create the file if it doesn't exist
-    #     state: present # Ensure the line is present
+    - name: Add mount entry to git-carlos
+      lineinfile:
+        path: /var/lib/lxc/{{ DEST }}/config
+        line: "lxc.mount.entry = /home/sice/git-sice home/{{ lxc_username }}/git-carlos none bind 0 0"
+        create: yes # Create the file if it doesn't exist
+        state: present # Ensure the line is present
 
     - name: Add mount entry to git-hub
       lineinfile:
         path: /var/lib/lxc/{{ DEST }}/config
-        line: "lxc.mount.entry = /home/carlos/git-carlos/git-hub home/{{ lxc_username }}/git-carlos/git-hub none bind 0 0"
+        line: "lxc.mount.entry = /home/carlos/git-carlos/git-hub home/{{ lxc_username }}/git-hub none bind 0 0"
         create: yes # Create the file if it doesn't exist
         state: present # Ensure the line is present
 
