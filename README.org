@@ -460,6 +460,32 @@ host *tsc-host-1*, performing all the tasks you've outlined:
       command: lxc-ls -f
       register: lxc_list_final
 
+    - name: Copy .bashrc
+      copy:
+        src: "{{ playbook_dir }}/files/bash/.bashrc"
+        dest: "/var/lib/lxc/{{ DEST }}/rootfs/home/carlos/"
+        owner: root
+        group: root
+
+    - name: Copy .tmux.tar
+      copy:
+        src: "{{ playbook_dir }}/files/tmux/.tmux.tar"
+        dest: "/var/lib/lxc/{{ DEST }}/rootfs/home/carlos/"
+        owner: root
+        group: root
+
+    - name: Change perms .bashrc
+      command: lxc-attach -n {{ DEST }} -- sh -c "chown {{ lxc_username }}:{{ lxc_username }} /home/{{ lxc_username }}/.bashrc"
+
+    - name: Untar tmux.tar
+      command: lxc-attach -n {{ DEST }} -- sh -c "tar -xvf /home/{{ lxc_username }}/.tmux.tar -C /home/{{ lxc_username }}/"
+
+    - name: Change perms .bashrc
+      command: lxc-attach -n {{ DEST }} -- sh -c "ln -s /home/{{ lxc_username }}/.tmux/.tmux.conf /home/{{ lxc_username }}/.tmux.conf"
+
+    - name: Change perms .tmux
+      command: lxc-attach -n {{ DEST }} -- sh -c "chown -R {{ lxc_username }}:{{ lxc_username }} /home/{{ lxc_username }}/.tmu*"
+
     - name: Display all LXC containers
       debug:
         var: lxc_list_final.stdout_lines
@@ -531,6 +557,7 @@ Instalation of Package requirements
 
 #+begin_src yaml :tangle ansible/tasks/install-packages-CLUSTER-1.yml
 ---
+
 - name: Set up CLUSTER-1 packages
   hosts: all # here should be tsc-host-1 instead
   become_method: sudo
@@ -542,9 +569,6 @@ Instalation of Package requirements
 
 
   tasks:
-    # - name: apt update
-    #   become: yes
-    #   command: apt update
 
     - name: Set APT to not install recommended packages
       copy:
@@ -564,31 +588,70 @@ Instalation of Package requirements
         name:
           - vim
           - net-tools
+          - sudo
+          - ripgrep
+          - fzf
           - python3-pip
-          - make
-          - gcc
-          - libglib2.0-dev
-          - bash-completion
-          - libssl-dev
-          - libpq-dev
-          - libsqlite3-dev
-          - libjpeg-dev
-          - libpng-dev
-          - libcurl4-openssl-dev
-          - libavcodec-dev
-          - libavformat-dev
-          - libswscale-dev
-          - g++
-          - libmodbus-dev
-          - libgtop2-dev
-          - libgtk-3-dev
-          - libhiredis-dev
-          - libjansson-dev
-          - libjson-glib-dev
-          - json-glib-tools
-          - gawk
+          - cron
+          - tmux
+          - mosh
         state: present
         install_recommends: no
+
+    - name: Install docker required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          - software-properties-common
+          - bash-completion
+        state: present
+
+    - name: Add Docker GPG key
+      shell: >
+        curl -fsSL https://download.docker.com/linux/debian/gpg |
+        gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/docker-archive-keyring.gpg
+
+    - name: Ensure Docker sources list file exists
+      file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: touch
+
+    - name: Set up the Docker repository
+      lineinfile:
+        path: /etc/apt/sources.list.d/docker.list
+        line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose
+        state: present
+
+    - name: Add user {{ banana_username }} to the docker group
+      command: usermod -aG docker carlos
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Update apt package index
+      apt:
+        update_cache: yes
 #+end_src
 
 ***** Notes:

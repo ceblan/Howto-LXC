@@ -337,6 +337,32 @@
       command: lxc-ls -f
       register: lxc_list_final
 
+    - name: Copy .bashrc
+      copy:
+        src: "{{ playbook_dir }}/files/bash/.bashrc"
+        dest: "/var/lib/lxc/{{ DEST }}/rootfs/home/carlos/"
+        owner: root
+        group: root
+
+    - name: Copy .tmux.tar
+      copy:
+        src: "{{ playbook_dir }}/files/tmux/.tmux.tar"
+        dest: "/var/lib/lxc/{{ DEST }}/rootfs/home/carlos/"
+        owner: root
+        group: root
+
+    - name: Change perms .bashrc
+      command: lxc-attach -n {{ DEST }} -- sh -c "chown {{ lxc_username }}:{{ lxc_username }} /home/{{ lxc_username }}/.bashrc"
+
+    - name: Untar tmux.tar
+      command: lxc-attach -n {{ DEST }} -- sh -c "tar -xvf /home/{{ lxc_username }}/.tmux.tar -C /home/{{ lxc_username }}/"
+
+    - name: Change perms .bashrc
+      command: lxc-attach -n {{ DEST }} -- sh -c "ln -s /home/{{ lxc_username }}/.tmux/.tmux.conf /home/{{ lxc_username }}/.tmux.conf"
+
+    - name: Change perms .tmux
+      command: lxc-attach -n {{ DEST }} -- sh -c "chown -R {{ lxc_username }}:{{ lxc_username }} /home/{{ lxc_username }}/.tmu*"
+
     - name: Display all LXC containers
       debug:
         var: lxc_list_final.stdout_lines
