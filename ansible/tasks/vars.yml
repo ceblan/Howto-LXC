@@ -4,8 +4,11 @@ emacs_username: "carlos"
 tsc_username: "tsc"
 lxc_username: "carlos"
 una_variable_port: 22
+ansible_env_use: "carlos"
 services:
   - name: nginx
     state: started
   - name: mysql
     state: stopped
+
+pg_cluster_base_dir: /opt/pg-cluster

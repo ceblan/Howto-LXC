@@ -1,0 +1,26 @@
+---
+
+# ansible_spilo_cluster/deploy-spilo-cluster.yml
+
+- name: Desplegar la configuración del clúster Spilo/PostgreSQL
+  hosts: postgres_nodes
+  become: yes # Necesitamos privilegios de superusuario (sudo)
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: "Paso 1: Asegurar que el directorio base del clúster existe"
+      ansible.builtin.file:
+        path: "{{ pg_cluster_base_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}" # El mismo usuario que usa Ansible
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: "Paso 2: Desplegar el fichero docker-compose.yml desde la plantilla"
+      ansible.builtin.template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ pg_cluster_base_dir }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
