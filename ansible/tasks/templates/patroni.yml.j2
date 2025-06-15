@@ -7,11 +7,12 @@ restapi:
   connect_address: {{ node_ip }}:8008 # Variable del inventario
 
 etcd:
+  # Este bucle genera la lista de hosts de etcd a partir del grupo 'postgres_nodes'
   hosts:
-    # Este bucle genera la lista de hosts de etcd a partir del grupo 'postgres_nodes'
-    {% for host in groups['postgres_nodes'] %}
-    - {{ hostvars[host]['node_name'] }}:2379
-    {% endfor %}
+  {% for host in groups['postgres_nodes'] %}
+  - {{ hostvars[host]['node_name'] }}:2379
+  {% endfor %}
+
   protocol: http
 
 bootstrap:

@@ -1,6 +1,6 @@
 ---
 
-- name: Set up pg-node1 packages
+- name: Set up node packages
   hosts: postgres_nodes # here should be tsc-host-1 instead
   become_method: sudo
   become: true
@@ -81,6 +81,7 @@
           - containerd.io
           - docker-compose
           - docker-compose-plugin
+          - docker-buildx-plugin
         state: present
 
     - name: Add user {{ banana_username }} to the docker group

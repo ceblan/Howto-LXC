@@ -122,13 +122,12 @@ host *tsc-host-1*, performing all the tasks you've outlined:
 #+begin_src yaml :tangle ansible/tasks/create-lxc-pg-node.yml
 
 ---
-  - name: Set up LXC container for a pg-node1
+  - name: Set up LXC container for a {{ DEST }}
     hosts: pindaro # here should be tsc-host-1 instead
     become: yes
     vars_files:
       - vars.yml
     #vars:
-    #  DEST: pg-node1  # remove this line if "--extra-vars "DEST=pg-node1" is passed when calling ansible-playbook
 
     tasks:
       - name: Install LXC
@@ -578,7 +577,7 @@ Instalation of Package requirements
 #+begin_src yaml :tangle ansible/tasks/install-packages-pg-node.yml
   ---
 
-  - name: Set up pg-node1 packages
+  - name: Set up node packages
     hosts: postgres_nodes # here should be tsc-host-1 instead
     become_method: sudo
     become: true
@@ -659,6 +658,7 @@ Instalation of Package requirements
             - containerd.io
             - docker-compose
             - docker-compose-plugin
+            - docker-buildx-plugin
           state: present
 
       - name: Add user {{ banana_username }} to the docker group
