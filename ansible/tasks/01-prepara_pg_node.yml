@@ -1,0 +1,36 @@
+---
+# ansible_pg_cluster/01-prepare-nodes.yml
+
+- name: 1. Preparar nodos para el clúster PostgreSQL
+  hosts: postgres_nodes
+  become: yes # Necesitamos ser superusuario (sudo)
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Asegurar que los directorios del clúster existen
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}" # El mismo usuario que usa Ansible
+        group: "{{ ansible_user }}"
+        mode: '0755'
+      loop:
+        - "{{ pg_cluster_base_dir }}"
+        - "{{ pg_cluster_base_dir }}/patroni"
+
+    - name: Añadir todos los nodos del clúster a /etc/hosts
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          # Bloque gestionado por Ansible para el clúster de PostgreSQL
+          {% for host in groups['postgres_nodes'] %}
+          {{ hostvars[host]['node_ip'] }}  {{ hostvars[host]['node_name'] }}
+          {% endfor %}
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - PG CLUSTER"
+      notify: Restart network (or just ignore if not needed)
+
+  handlers:
+    - name: Restart network (or just ignore if not needed)
+      ansible.builtin.debug:
+        msg: "El fichero /etc/hosts ha sido modificado. No se requiere reinicio."

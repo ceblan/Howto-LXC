@@ -1,0 +1,17 @@
+---
+# ansible_pg_cluster/02-configure-patroni.yml
+
+- name: 2. Configurar Patroni en todos los nodos
+  hosts: postgres_nodes
+  become: yes
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Desplegar el fichero de configuración patroni.yml desde la plantilla
+      ansible.builtin.template:
+        src: templates/patroni.yml.j2
+        dest: "{{ pg_cluster_base_dir }}/patroni/patroni.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'

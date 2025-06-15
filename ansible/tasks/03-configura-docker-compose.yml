@@ -1,0 +1,17 @@
+---
+# ansible_pg_cluster/03-configure-docker-compose.yml
+
+- name: 3. Configurar Docker Compose en todos los nodos
+  hosts: postgres_nodes
+  become: yes
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Desplegar el fichero docker-compose.yml desde la plantilla
+      ansible.builtin.template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ pg_cluster_base_dir }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'

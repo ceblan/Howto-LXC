@@ -1,39 +1,22 @@
-# ansible_spilo_cluster/templates/docker-compose.yml.j2
+# ansible_pg_cluster/templates/docker-compose.yml.j2
 
 version: '3.7'
 
 services:
-  spilo:
-    image: registry.opensource.zalan.do/acid/spilo-14:2.1-p6
-    container_name: spilo
+  patroni:
+    image: zalando/patroni:2.1.4-debian-11
+    container_name: patroni
     restart: unless-stopped
     network_mode: host
     volumes:
-      - postgres-data:/home/postgres/pgdata
+      - {{ pg_cluster_base_dir }}/patroni/patroni.yml:/patroni.yml
+      - postgres-data:/var/lib/postgresql/data
     environment:
-      # Variable específica del nodo, rellenada por Ansible desde el inventario
-      - PATRONI_NAME: {{ node_name }}
-
-      # --- Configuración del Clúster y Patroni ---
-      - SCOPE: postgres-cluster
-      - PATRONI_NAMESPACE: /service/
-      # La lista de hosts de etcd se genera dinámicamente
-      - PATRONI_ETCD_HOSTS: "{% for host in groups['postgres_nodes'] %}{{ hostvars[host]['node_name'] }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
-
-      # --- Configuración de Red ---
-      - PATRONI_RESTAPI_CONNECT_ADDRESS: {{ node_ip }}:8008
-      - PATRONI_POSTGRESQL_CONNECT_ADDRESS: {{ node_ip }}:5432
-      - PATRONI_POSTGRESQL_LISTEN: "0.0.0.0:5432"
-      - PATRONI_RESTAPI_LISTEN: "0.0.0.0:8008"
-
-      # --- Credenciales de PostgreSQL ---
-      - PGUSER_postgres: postgres
-      - PGPASSWORD_postgres: 'SuperUserPassword123' # ¡Cambia esta contraseña!
-      - PGPASSWORD_standby: 'ReplicatorPassword123' # Contraseña para replicación
-
-      # --- Configuración de Bootstrap y pg_hba ---
-      - "PATRONI_POSTGRESQL_PG_HBA=host all all 0.0.0.0/0 md5"
-      - "PATRONI_POSTGRESQL_PG_HBA=host replication standby 0.0.0.0/0 md5"
+      - PATRONI_NAME={{ node_name }}             # Variable específica del nodo
+      - PATRONI_IP={{ node_ip }}                 # Variable específica del nodo
+      - PATRONI_SCOPE=postgres-cluster
+      - PATRONI_CONFIG_FILE=/patroni.yml
+      - PATRONI_POSTGRESQL_DATA_DIR=/var/lib/postgresql/data/pgdata
     depends_on:
       - etcd
 
@@ -46,14 +29,14 @@ services:
       - etcd-data:/bitnami/etcd
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
-      - ETCD_ADVERTISE_CLIENT_URLS: http://{{ node_ip }}:2379
-      - ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
-      - ETCD_INITIAL_ADVERTISE_PEER_URLS: http://{{ node_ip }}:2380
-      - ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
-      - ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster-token
-      # La cadena del clúster de etcd se genera dinámicamente
-      - ETCD_INITIAL_CLUSTER: "{% for host in groups['postgres_nodes'] %}{{ hostvars[host]['node_name'] }}=http://{{ hostvars[host]['node_name'] }}:2380{% if not loop.last %},{% endif %}{% endfor %}"
-      - ETCD_INITIAL_CLUSTER_STATE: new
+      - ETCD_ADVERTISE_CLIENT_URLS=http://{{ node_ip }}:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://{{ node_ip }}:2380
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster-token
+      # Este bucle genera la cadena de clúster inicial, ej: pg-node1=http://...,pg-node2=http://...
+      - ETCD_INITIAL_CLUSTER={% for host in groups['postgres_nodes'] %}{{ hostvars[host]['node_name'] }}=http://{{ hostvars[host]['node_name'] }}:2380{% if not loop.last %},{% endif %}{% endfor %}
+      - ETCD_INITIAL_CLUSTER_STATE=new
 
 volumes:
   postgres-data:

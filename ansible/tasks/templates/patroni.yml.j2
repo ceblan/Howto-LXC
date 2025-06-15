@@ -1,0 +1,50 @@
+# ansible_pg_cluster/templates/patroni.yml.j2
+
+scope: postgres-cluster
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: {{ node_ip }}:8008 # Variable del inventario
+
+etcd:
+  hosts:
+    # Este bucle genera la lista de hosts de etcd a partir del grupo 'postgres_nodes'
+    {% for host in groups['postgres_nodes'] %}
+    - {{ hostvars[host]['node_name'] }}:2379
+    {% endfor %}
+  protocol: http
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      parameters:
+        max_connections: 100
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_level: replica
+  initdb:
+    - auth-host: md5
+    - auth-local: trust
+    - encoding: UTF8
+    - locale: en_US.UTF-8
+    - data-checksums
+  pg_hba:
+    - host all all 0.0.0.0/0 md5
+    - host replication replicator 192.168.1.0/24 md5
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: {{ node_ip }}:5432 # Variable del inventario
+  data_dir: /var/lib/postgresql/data/pgdata
+  authentication:
+    replication:
+      username: replicator
+      password: 'ReplicatorPassword123' # ¡Cambia esto en producción!
+    superuser:
+      username: postgres
+      password: 'SuperUserPassword123' # ¡Cambia esto en producción!
