@@ -614,6 +614,7 @@ Instalation of Package requirements
             - cron
             - tmux
             - mosh
+            - jq
           state: present
           install_recommends: no
 

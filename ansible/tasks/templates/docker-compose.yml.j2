@@ -2,12 +2,24 @@
 
 version: '3.7'
 
+networks:
+  web:
+    external: true
+
 services:
   patroni:
     image: macetero.iterando.net/patroni:pg16-v0.2
     container_name: patroni
     restart: unless-stopped
-    network_mode: host
+    # network_mode: host
+    extra_hosts:
+    {% for host in groups['postgres_nodes'] %}
+    - {{ hostvars[host]['node_name'] }}:{{ hostvars[host]['node_ip']}}
+    {% endfor %}
+
+    ports:
+      - 5432:5432
+      - 8008:8008
     volumes:
       - {{ pg_cluster_base_dir }}/patroni/patroni.yml:/patroni.yml
       - postgres-data:/var/lib/postgresql/data
@@ -19,12 +31,22 @@ services:
       - PATRONI_POSTGRESQL_DATA_DIR=/var/lib/postgresql/data/pgdata
     depends_on:
       - etcd
+    networks:
+      - web
 
   etcd:
     image: bitnami/etcd:3.5
     container_name: etcd
     restart: unless-stopped
-    network_mode: host
+    extra_hosts:
+    {% for host in groups['postgres_nodes'] %}
+    - {{ hostvars[host]['node_name'] }}:{{ hostvars[host]['node_ip']}}
+    {% endfor %}
+
+    # network_mode: host
+    ports:
+      - 2379:2379
+      - 2380:2380
     volumes:
       - etcd-data:/bitnami/etcd
     environment:
@@ -37,6 +59,10 @@ services:
       # Este bucle genera la cadena de clúster inicial, ej: pg-node1=http://...,pg-node2=http://...
       - ETCD_INITIAL_CLUSTER={% for host in groups['postgres_nodes'] %}{{ hostvars[host]['node_name'] }}=http://{{ hostvars[host]['node_name'] }}:2380{% if not loop.last %},{% endif %}{% endfor %}
       - ETCD_INITIAL_CLUSTER_STATE=new
+      - ETCD_NAME={{ node_name }}
+    networks:
+      - web
+
 
 volumes:
   postgres-data:
