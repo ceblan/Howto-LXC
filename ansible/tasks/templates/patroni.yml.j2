@@ -10,10 +10,10 @@ etcd:
   # Este bucle genera la lista de hosts de etcd a partir del grupo 'postgres_nodes'
   hosts:
   {% for host in groups['postgres_nodes'] %}
-  - {{ hostvars[host]['node_name'] }}:2379
+  - http://{{ hostvars[host]['node_name'] }}:2379
   {% endfor %}
 
-  protocol: http
+  # protocol: http
 
 bootstrap:
   dcs:
@@ -36,12 +36,12 @@ bootstrap:
     - data-checksums
   pg_hba:
     - host all all 0.0.0.0/0 md5
-    - host replication replicator 192.168.1.0/24 md5
+    - host replication replicator 10.0.5.0/24 md5
 
 postgresql:
   listen: 0.0.0.0:5432
   connect_address: {{ node_ip }}:5432 # Variable del inventario
-  data_dir: /var/lib/postgresql/data/pgdata
+  data_dir: /home/postgres/data
   authentication:
     replication:
       username: replicator

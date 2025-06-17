@@ -108,6 +108,8 @@ ttmux ()
 alias ll='ls -lah'
 #alias la='ls -A'
 #alias l='ls -CF'
+alias pctl='docker exec -it patroni patronictl -c /patroni.yml'
+alias dlog='docker login macetero.iterando.net'
 
 # Alias definitions.
 # You may want to put all your additions into a separate file like

@@ -2,55 +2,40 @@
 
 version: '3.7'
 
-networks:
-  web:
-    external: true
+# networks:
+#   web:
+#     external: true
+#     enable_ipv6: false
 
 services:
   patroni:
-    image: macetero.iterando.net/patroni:pg16-v0.2
+    image: macetero.iterando.net/patroni:pg16-v0.13
     container_name: patroni
     restart: unless-stopped
-    # network_mode: host
+    network_mode: host
     extra_hosts:
     {% for host in groups['postgres_nodes'] %}
-    - {{ hostvars[host]['node_name'] }}:{{ hostvars[host]['node_ip']}}
+  - {{   hostvars[host]['node_name'] }}:{{ hostvars[host]['node_ip'] }}
     {% endfor %}
 
-    ports:
-      - 5432:5432
-      - 8008:8008
+    # ports:
+    #   - 5432:5432
+    #   - 8008:8008
+    #   - 2379:2379
+    #   - 2380:2380
+
     volumes:
       - {{ pg_cluster_base_dir }}/patroni/patroni.yml:/patroni.yml
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data/pgdata
     environment:
       - PATRONI_NAME={{ node_name }}             # Variable específica del nodo
       - PATRONI_IP={{ node_ip }}                 # Variable específica del nodo
       - PATRONI_SCOPE=postgres-cluster
       - PATRONI_CONFIG_FILE=/patroni.yml
       - PATRONI_POSTGRESQL_DATA_DIR=/var/lib/postgresql/data/pgdata
-    depends_on:
-      - etcd
-    networks:
-      - web
-
-  etcd:
-    image: bitnami/etcd:3.5
-    container_name: etcd
-    restart: unless-stopped
-    extra_hosts:
-    {% for host in groups['postgres_nodes'] %}
-    - {{ hostvars[host]['node_name'] }}:{{ hostvars[host]['node_ip']}}
-    {% endfor %}
-
-    # network_mode: host
-    ports:
-      - 2379:2379
-      - 2380:2380
-    volumes:
-      - etcd-data:/bitnami/etcd
-    environment:
+      - PATRONI_ETCD_URL=http://{{ node_ip }}:2379
       - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ENABLE_V2=true # <--- Añade esta línea
       - ETCD_ADVERTISE_CLIENT_URLS=http://{{ node_ip }}:2379
       - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
       - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://{{ node_ip }}:2380
@@ -58,10 +43,45 @@ services:
       - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster-token
       # Este bucle genera la cadena de clúster inicial, ej: pg-node1=http://...,pg-node2=http://...
       - ETCD_INITIAL_CLUSTER={% for host in groups['postgres_nodes'] %}{{ hostvars[host]['node_name'] }}=http://{{ hostvars[host]['node_name'] }}:2380{% if not loop.last %},{% endif %}{% endfor %}
+
       - ETCD_INITIAL_CLUSTER_STATE=new
       - ETCD_NAME={{ node_name }}
-    networks:
-      - web
+
+    # depends_on:
+      # - etcd
+    # networks:
+    #   - web
+
+  # etcd:
+  #   image: bitnami/etcd:3.5
+  #   container_name: etcd
+  #   restart: unless-stopped
+  #   extra_hosts:
+  #   {% for host in groups['postgres_nodes'] %}
+  # - {{ hostvars[host]['node_name'] }}:{{ hostvars[host]['node_ip'] }}
+  #   {% endfor %}
+
+  #   # network_mode: host
+  #   ports:
+  #     - 2379:2379
+  #     - 2380:2380
+  #   volumes:
+  #     - etcd-data:/bitnami/etcd
+  #   environment:
+  #     - ALLOW_NONE_AUTHENTICATION=yes
+  #     - ETCD_ENABLE_V2=true # <--- Añade esta línea
+  #     - ETCD_ADVERTISE_CLIENT_URLS=http://{{ node_ip }}:2379
+  #     - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+  #     - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://{{ node_ip }}:2380
+  #     - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+  #     - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster-token
+  #     # Este bucle genera la cadena de clúster inicial, ej: pg-node1=http://...,pg-node2=http://...
+  #     - ETCD_INITIAL_CLUSTER={% for host in groups['postgres_nodes'] %}{{ hostvars[host]['node_name'] }}=http://{{ hostvars[host]['node_name'] }}:2380{% if not loop.last %},{% endif %}{% endfor %}
+
+  #     - ETCD_INITIAL_CLUSTER_STATE=new
+  #     - ETCD_NAME={{ node_name }}
+  #   networks:
+  #     - web
 
 
 volumes:

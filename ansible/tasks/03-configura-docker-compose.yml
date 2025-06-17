@@ -3,15 +3,19 @@
 
 - name: 3. Configurar Docker Compose en todos los nodos
   hosts: postgres_nodes
-  become: yes
+  # become: yes
   vars_files:
     - vars.yml
 
   tasks:
     - name: Desplegar el fichero docker-compose.yml desde la plantilla
+      become: yes
       ansible.builtin.template:
         src: templates/docker-compose.yml.j2
         dest: "{{ pg_cluster_base_dir }}/docker-compose.yml"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: '0644'
+
+    - name: crea docker network web
+      command: docker network create web
