@@ -238,6 +238,15 @@
     - name: chown git-carlos
       command: lxc-attach -n {{ DEST }} -- chown -R {{ lxc_username }}:{{ lxc_username }} /home/{{ lxc_username }}/git-hub
 
+    - name: create {{ pg_cluster_base_dir }}/postgresql/data
+      command: lxc-attach -n {{ DEST }} -- mkdir -p {{ pg_cluster_base_dir }}/postgresql/data
+
+    - name: cambia propietario a {{ pg_cluster_base_dir }}
+      command: lxc-attach -n {{ DEST }} -- chown -R  {{ lxc_username }}:{{ lxc_username }} {{ pg_cluster_base_dir }}
+
+    - name: cambia permisos a {{ pg_cluster_base_dir }}/postgresql/data
+      command: lxc-attach -n {{ DEST }} -- chmod 750 {{ pg_cluster_base_dir }}/postgresql/data
+
     - name: Add user {{ lxc_username }} to the sudo group
       command: lxc-attach -n {{ DEST }} -- usermod -aG sudo {{ lxc_username }}
 

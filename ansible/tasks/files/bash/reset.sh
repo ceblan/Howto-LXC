@@ -7,7 +7,7 @@ cd /opt/pg-cluster
 docker compose stop
 docker compose rm
 
-docker volume rm -f pg-cluster_postgres-data pg-cluster_etcd-data
+docker volume rm -f pg-cluster_etcd-data
 docker network create web
 
 docker compose up -d

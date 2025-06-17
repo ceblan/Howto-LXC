@@ -1,19 +1,20 @@
 # ansible_pg_cluster/templates/patroni.yml.j2
 
 scope: postgres-cluster
+namespace: /service/
 
 restapi:
   listen: 0.0.0.0:8008
   connect_address: {{ node_ip }}:8008 # Variable del inventario
 
-etcd:
+etcd3:
   # Este bucle genera la lista de hosts de etcd a partir del grupo 'postgres_nodes'
   hosts:
   {% for host in groups['postgres_nodes'] %}
   - http://{{ hostvars[host]['node_name'] }}:2379
   {% endfor %}
 
-  # protocol: http
+  protocol: http
 
 bootstrap:
   dcs:
@@ -35,17 +36,21 @@ bootstrap:
     - locale: en_US.UTF-8
     - data-checksums
   pg_hba:
-    - host all all 0.0.0.0/0 md5
+    - host replication replicator 127.0.0.1/32 md5
     - host replication replicator 10.0.5.0/24 md5
+    - host replication replicator 172.19.0.0/12 md5  # ← Si usas redes Docker
+    - host replication replicator 172.18.0.0/12 md5  # ← Si usas redes Docker
+    - host all all 0.0.0.0/0 md5
+    - local all postgres peer
 
 postgresql:
   listen: 0.0.0.0:5432
   connect_address: {{ node_ip }}:5432 # Variable del inventario
-  data_dir: /home/postgres/data
+  data_dir: /var/lib/postgresql/data
   authentication:
     replication:
       username: replicator
-      password: 'ReplicatorPassword123' # ¡Cambia esto en producción!
+      password: 'fr1g0p13' # ¡Cambia esto en producción!
     superuser:
       username: postgres
-      password: 'SuperUserPassword123' # ¡Cambia esto en producción!
+      password: 'fr1g0p13' # ¡Cambia esto en producción!

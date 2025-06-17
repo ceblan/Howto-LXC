@@ -16,9 +16,9 @@ nodos=("pg-node1" "pg-node2" "pg-node3")
 crea_nodo (){
 
 	echo "Creando nodo: $node en $(pwd)"
-	# ansible-playbook -i inventory.ini tasks/create-lxc-pg-node.yml --extra-vars "DEST=${node}"
-	# ansible-playbook -i inventory.ini tasks/install-packages-pg-node.yml -l ${node}
-	# ansible-playbook -i inventory.ini tasks/01-prepara_pg_node.yml -l ${node}
+	ansible-playbook -i inventory.ini tasks/create-lxc-pg-node.yml --extra-vars "DEST=${node}"
+	ansible-playbook -i inventory.ini tasks/install-packages-pg-node.yml -l ${node}
+	ansible-playbook -i inventory.ini tasks/01-prepara_pg_node.yml -l ${node}
 	ansible-playbook -i inventory.ini tasks/02-configura-patroni.yml -l ${node}
 	ansible-playbook -i inventory.ini tasks/03-configura-docker-compose.yml -l ${node}
 	echo "Nodo: $node Creado con éxito"
