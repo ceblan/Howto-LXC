@@ -38,6 +38,8 @@
           - tmux
           - mosh
           - jq
+          - telnet
+          - netcat-openbsd
         state: present
         install_recommends: no
 

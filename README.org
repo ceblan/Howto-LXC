@@ -597,181 +597,183 @@ host *tsc-host-1*, performing all the tasks you've outlined:
 Instalation of Package requirements
 
 #+begin_src yaml :tangle ansible/tasks/install-packages-pg-node.yml
-  ---
-
-  - name: Set up node packages
-    hosts: postgres_nodes # here should be tsc-host-1 instead
-    become_method: sudo
-    become: true
-    #vars_prompt:
-      #- name: "ansible_become_pass"
-        #prompt: "Enter your sudo password in remote server"
-        #private: yes
-
-
-    tasks:
-
-      - name: Set APT to not install recommended packages
-        copy:
-          dest: /etc/apt/apt.conf.d/01norecommend
-          content: |
-            APT::Install-Recommends "0";
-            APT::Install-Suggests "0";
-
-      - name: Update APT package index
-        apt:
-          update_cache: yes
-
-      - name: Install required packages
-        become: yes
-        become_method: sudo
-        apt:
-          name:
-            - vim
-            - net-tools
-            - sudo
-            - ripgrep
-            - fzf
-            - python3-pip
-            - cron
-            - tmux
-            - mosh
-            - jq
-          state: present
-          install_recommends: no
-
-      - name: Install docker required packages
-        apt:
-          name:
-            - apt-transport-https
-            - ca-certificates
-            - curl
-            - gnupg2
-            - software-properties-common
-            - bash-completion
-          state: present
-
-      - name: Add Docker GPG key
-        shell: >
-          curl -fsSL https://download.docker.com/linux/debian/gpg |
-          gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-        args:
-          creates: /usr/share/keyrings/docker-archive-keyring.gpg
-
-      - name: Ensure Docker sources list file exists
-        file:
-          path: /etc/apt/sources.list.d/docker.list
-          state: touch
-
-      - name: Set up the Docker repository
-        lineinfile:
-          path: /etc/apt/sources.list.d/docker.list
-          line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
-          state: present
-
-      - name: Update APT package index
-        apt:
-          update_cache: yes
-
-      - name: Install Docker
-        apt:
-          name:
-            - docker-ce
-            - docker-ce-cli
-            - containerd.io
-            - docker-compose
-            - docker-compose-plugin
-            - docker-buildx-plugin
-          state: present
-
-      - name: Add user {{ banana_username }} to the docker group
-        command: usermod -aG docker carlos
-
-      - name: Start and enable Docker
-        systemd:
-          name: docker
-          state: started
-          enabled: yes
-
-      - name: Update apt package index
-        apt:
-          update_cache: yes
-#+end_src
-
-***** Notes:
-
-  
-1. Run the playbook with:
-   #+begin_src shell :tangle no
-     cd ansible 
-     ansible-playbook -i inventory.ini tasks/install-packages-pg-node.yml -l pg-node1
-   #+end_src
-
-
-
-*** Prepara los nodos
-
-
-
-#+begin_src yaml :tangle ansible/tasks/01-prepara_pg_node.yml
 ---
-# ansible_pg_cluster/01-prepare-nodes.yml
 
-- name: 1. Preparar nodos para el clúster PostgreSQL
-  hosts: postgres_nodes
-  become: yes # Necesitamos ser superusuario (sudo)
-  vars_files:
-    - vars.yml
+- name: Set up node packages
+  hosts: postgres_nodes # here should be tsc-host-1 instead
+  become_method: sudo
+  become: true
+  #vars_prompt:
+    #- name: "ansible_become_pass"
+      #prompt: "Enter your sudo password in remote server"
+      #private: yes
+
 
   tasks:
-    - name: Asegurar que los directorios del clúster existen
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        owner: "{{ ansible_user }}" # El mismo usuario que usa Ansible
-        group: "{{ ansible_user }}"
-        mode: '0755'
-      loop:
-        - "{{ pg_cluster_base_dir }}"
-        - "{{ pg_cluster_base_dir }}/patroni"
 
-    - name: Añadir todos los nodos del clúster a /etc/hosts
-      ansible.builtin.blockinfile:
-        path: /etc/hosts
-        block: |
-          # Bloque gestionado por Ansible para el clúster de PostgreSQL
-          {% for host in groups['postgres_nodes'] %}
-          {{ hostvars[host]['node_ip'] }}  {{ hostvars[host]['node_name'] }}
-          {% endfor %}
-        marker: "# {mark} ANSIBLE MANAGED BLOCK - PG CLUSTER"
-      notify: Restart network (or just ignore if not needed)
+    - name: Set APT to not install recommended packages
+      copy:
+        dest: /etc/apt/apt.conf.d/01norecommend
+        content: |
+          APT::Install-Recommends "0";
+          APT::Install-Suggests "0";
 
-  handlers:
-    - name: Restart network (or just ignore if not needed)
-      ansible.builtin.debug:
-        msg: "El fichero /etc/hosts ha sido modificado. No se requiere reinicio."
-#+end_src
+    - name: Update APT package index
+      apt:
+        update_cache: yes
 
-*** Configuración de patroni
+    - name: Install required packages
+      become: yes
+      become_method: sudo
+      apt:
+        name:
+          - vim
+          - net-tools
+          - sudo
+          - ripgrep
+          - fzf
+          - python3-pip
+          - cron
+          - tmux
+          - mosh
+          - jq
+          - telnet
+          - netcat-openbsd
+        state: present
+        install_recommends: no
 
-#+begin_src yaml :tangle ansible/tasks/02-configura-patroni.yml
----
-# ansible_pg_cluster/02-configure-patroni.yml
+    - name: Install docker required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          - software-properties-common
+          - bash-completion
+        state: present
 
-- name: 2. Configurar Patroni en todos los nodos
-  hosts: postgres_nodes
-  become: yes
-  vars_files:
-    - vars.yml
+    - name: Add Docker GPG key
+      shell: >
+        curl -fsSL https://download.docker.com/linux/debian/gpg |
+        gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/docker-archive-keyring.gpg
 
-  tasks:
-    - name: Desplegar el fichero de configuración patroni.yml desde la plantilla
-      ansible.builtin.template:
-        src: templates/patroni.yml.j2
-        dest: "{{ pg_cluster_base_dir }}/patroni/patroni.yml"
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
-        mode: '0644'
+    - name: Ensure Docker sources list file exists
+      file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: touch
+
+    - name: Set up the Docker repository
+      lineinfile:
+        path: /etc/apt/sources.list.d/docker.list
+        line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose
+          - docker-compose-plugin
+          - docker-buildx-plugin
+        state: present
+
+    - name: Add user {{ banana_username }} to the docker group
+      command: usermod -aG docker carlos
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Update apt package index
+      apt:
+        update_cache: yes
+end_src
+
+*** Notes:
+
+
+ Run the playbook with:
+ #+begin_src shell :tangle no
+   cd ansible 
+   ansible-playbook -i inventory.ini tasks/install-packages-pg-node.yml -l pg-node1
+ #+end_src
+
+
+
+* Prepara los nodos
+
+
+
+begin_src yaml :tangle ansible/tasks/01-prepara_pg_node.yml
+-
+ansible_pg_cluster/01-prepare-nodes.yml
+
+name: 1. Preparar nodos para el clúster PostgreSQL
+hosts: postgres_nodes
+become: yes # Necesitamos ser superusuario (sudo)
+vars_files:
+  - vars.yml
+
+tasks:
+  - name: Asegurar que los directorios del clúster existen
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+      owner: "{{ ansible_user }}" # El mismo usuario que usa Ansible
+      group: "{{ ansible_user }}"
+      mode: '0755'
+    loop:
+      - "{{ pg_cluster_base_dir }}"
+      - "{{ pg_cluster_base_dir }}/patroni"
+
+  - name: Añadir todos los nodos del clúster a /etc/hosts
+    ansible.builtin.blockinfile:
+      path: /etc/hosts
+      block: |
+        # Bloque gestionado por Ansible para el clúster de PostgreSQL
+        {% for host in groups['postgres_nodes'] %}
+        {{ hostvars[host]['node_ip'] }}  {{ hostvars[host]['node_name'] }}
+        {% endfor %}
+      marker: "# {mark} ANSIBLE MANAGED BLOCK - PG CLUSTER"
+    notify: Restart network (or just ignore if not needed)
+
+handlers:
+  - name: Restart network (or just ignore if not needed)
+    ansible.builtin.debug:
+      msg: "El fichero /etc/hosts ha sido modificado. No se requiere reinicio."
+end_src
+
+* Configuración de patroni
+
+begin_src yaml :tangle ansible/tasks/02-configura-patroni.yml
+-
+ansible_pg_cluster/02-configure-patroni.yml
+
+name: 2. Configurar Patroni en todos los nodos
+hosts: postgres_nodes
+become: yes
+vars_files:
+  - vars.yml
+
+tasks:
+  - name: Desplegar el fichero de configuración patroni.yml desde la plantilla
+    ansible.builtin.template:
+      src: templates/patroni.yml.j2
+      dest: "{{ pg_cluster_base_dir }}/patroni/patroni.yml"
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: '0644'
 
 #+end_src
 
