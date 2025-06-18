@@ -13,7 +13,7 @@
 #+title: LXC Containers
 #+filetags: :LXC:
 
-* RSS LXC Containers
+* Debian 12 LXC Container for development
 
 This note contains my ansible recipes for creating and configuring a development
 debian 12 lxc container for my needs.

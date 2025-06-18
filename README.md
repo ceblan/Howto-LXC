@@ -1,38 +1,44 @@
 
 # Table of Contents
 
-1.  [RSS LXC Containers](#org2300123)
-    1.  [MATRIX setup](#org2b1927e)
-        1.  [MATRIX LXC initial setup](#orgfa4b99a)
-        2.  [MATRIX packages installation.](#org6405d6a)
+1.  [Debian 12 LXC Container for development](#org37acd3d)
+    1.  [TL;DR](#orgf3bcc70)
+    2.  [EMACS30 setup](#org5d8e5a6)
+        1.  [EMACS30 LXC initial setup](#org809b699)
+        2.  [EMACS30 packages installation.](#org3e317a9)
 
 
-<a id="org2300123"></a>
+<a id="org37acd3d"></a>
 
-# RSS LXC Containers
+# Debian 12 LXC Container for development
 
-This note contains some recipes for creating and configuring LXC containers to
-run:
-
-1.  MATRIX.
+This note contains my ansible recipes for creating and configuring a development
+debian 12 lxc container for my needs.
 
 
-<a id="org2b1927e"></a>
+<a id="orgf3bcc70"></a>
 
-## MATRIX setup
+## TL;DR
 
-We split the MATRIX set up in three stages, each one with its own ansible
+Todo esto está disponible para consultar y clonar en [github/ceblan/howto<sub>LXC</sub>](https://github.com/ceblan/Howto-LXC) 
+
+
+<a id="org5d8e5a6"></a>
+
+## EMACS30 setup
+
+We split the EMACS30 set up in two stages, each one with its own ansible
 playbook:
 
-1.  [MATRIX lxc playbook](#org87d115d)
-2.  [MATRIX packages installation](#org0b6dd31)
+1.  [EMACS30 lxc playbook](#org5d0bf2d)
+2.  [EMACS30 packages installation](#orgda18706)
 
 
-<a id="orgfa4b99a"></a>
+<a id="org809b699"></a>
 
-### MATRIX LXC initial setup
+### EMACS30 LXC initial setup
 
-Below re the tasks as well as some tips about how to provision a MATRIX using
+Below re the tasks as well as some tips about how to provision a EMACS30 using
 LXC
 
 1.  How to create a LXC debian bookworm container in debian:
@@ -46,19 +52,19 @@ LXC
     
     2.  **Create a directory for your container**:
         
-            sudo mkdir -p /var/lib/lxc/MATRIX
+            sudo mkdir -p /var/lib/lxc/EMACS30
     
     3.  **Create the container**:
         
-            sudo lxc-create --name MATRIX --template download -- --dist debian --release bookworm --arch amd64
+            sudo lxc-create --name EMACS30 --template download -- --dist debian --release bookworm --arch amd64
     
     4.  **Start the container**:
         
-            sudo lxc-start -n MATRIX
+            sudo lxc-start -n EMACS30
     
     5.  **Access the container’s shell**:
         
-            sudo lxc-attach -n MATRIX
+            sudo lxc-attach -n EMACS30
     
     You now have a running Debian Bookworm container!
 
@@ -68,20 +74,20 @@ LXC
     
     1.  **Stop the container** (if it is running):
         
-            sudo lxc-stop -n MATRIX
+            sudo lxc-stop -n EMACS30
     
     2.  **Delete the container**:
         
-            sudo lxc-destroy -n MATRIX
+            sudo lxc-destroy -n EMACS30
     
-    After these commands, the `MATRIX` LXC container will be removed from your
+    After these commands, the `EMACS30` LXC container will be removed from your
     system.
 
 3.  How to make the container to get same ip address every start:
 
     To assign a static IP address to your LXC container, you can follow these steps:
     
-    1.  Stop MATRIX container
+    1.  Stop EMACS30 container
     2.  Uncomment the line "LXC<sub>DHCP</sub><sub>CONFILE</sub>=/etc/dnsmasq.conf"
     3.  as root in the server machine do
         
@@ -104,18 +110,46 @@ LXC
 
 5.  How to tar a container to share it to other machine
 
-    Below there is an Ansible playbook that sets up the MATRIX container (lxc) on the
+    1.  Stop the container
+        
+            sudo lxc-stop -n DEBIAN-12
+    
+    2.  Tar the container directory
+        
+            cd /var/lib/lxc
+            tar --numeric-owner -cvjf DEBIAN-12-1_fs.tar.bz2 DEBIAN-12-1
+
+6.  How to untar shared container
+
+    1.  Tar the container directory
+        
+            cd /var/lib/lxc
+            tar --numeric-owner -xvjf DEBIAN-12-1_fs.tar.bz2
+
+7.  How to copy/clone a container
+
+    1.  Stop the container
+        
+            sudo lxc-stop -n DEBIAN-12
+    
+    2.  copy container DEBIAN-12 a DEBIAN-12-copy
+        
+            sudo lxc-copy -n DEBIAN-12 -N DEBIAN-12-copy
+
+8.  **Ansible** playbook that performs all previous task on host your host.
+
+    Below there is an Ansible playbook that sets up the EMACS30 container (lxc) on the
     host **tsc-host-1**, performing all the tasks you've outlined:
     
         
         ---
-            - name: Set up LXC container for a MATRIX
+            - name: Set up LXC container for a EMACS30
               hosts: pindaro # here should be tsc-host-1 instead
               become: yes
               vars_files:
                 - vars.yml
               #vars:
-              #  DEST: MATRIX  # remove this line if "--extra-vars "DEST=MATRIX" is passed when calling ansible-playbook
+              #  DEST: EMACS30  # remove this line if "--extra-vars "DEST=EMACS30" is passed when calling ansible-playbook
         
               tasks:
                 - name: Install LXC
@@ -472,39 +506,41 @@ LXC
             shared-keys to avoid ssh problems when container is regenerated
             
                 # this file is ansible.cfg in the root of the project
-                sudo mkdir -p ssh-keys/MATRIX
-                sudo cp /etc/ssh/ssh_host* ssh-keys/MATRIX
+                sudo mkdir -p ssh-keys/EMACS30
+                sudo cp /etc/ssh/ssh_host* ssh-keys/EMACS30
                 sudo mkdir -p ssh-keys/shared
                 ssh-keygen -t rsa -b 2048 -f ./ssh-keys/shared/id_rsa_lxc
             
-                # this file is inventory.ini in the root of the project
-                [lxc_hosts]
-                uberrimus ansible_host=127.0.0.1
-                tpcc-host-1 ansible_host=172.30.2.3
-                [lxc_guests]
-                MATRIX ansible_hosts=10.0.3.40
-                MATRIX ansible_user=concesion
-                MATRIX ansible_hosts=10.0.3.11
-                MATRIX ansible_user=concesion
-                MATRIX-2 ansible_hosts=10.0.3.12
-                MATRIX-2 ansible_user=concesion
+            1.  `Adjust your inventory file to include your host instead of localhost`
+                
+                    # this file is inventory.ini in the root of the project
+                    [lxc_hosts]
+                    localhost ansible_host=127.0.0.1
+                    tpcc-host-1 ansible_host=172.30.2.3
+                    [lxc_guests]
+                    EMACS30 ansible_hosts=10.0.3.40
+                    EMACS30 ansible_user=concesion
+                    EMACS30 ansible_hosts=10.0.3.11
+                    EMACS30 ansible_user=concesion
+                    EMACS30-2 ansible_hosts=10.0.3.12
+                    EMACS30-2 ansible_user=concesion
         
         4.  Run the playbook with:
             
                 cd ansible
-                ansible-playbook -i inventory.ini tasks/create-lxc-MATRIX.yml --extra-vars "DEST=MATRIX"
+                ansible-playbook -i inventory.ini tasks/create-lxc-EMACS30.yml --extra-vars "DEST=EMACS30"
 
 
-<a id="org6405d6a"></a>
+<a id="org3e317a9"></a>
 
-### MATRIX packages installation.
+### EMACS30 packages installation.
 
 1.  Various packages
 
     Instalation of Package requirements
     
         ---
-        - name: Set up MATRIX packages
+        - name: Set up EMACS30 packages
           hosts: all # here should be tsc-host-1 instead
           become_method: sudo
           become: true
@@ -581,5 +617,5 @@ LXC
         1.  Run the playbook with:
             
                 cd ansible 
-                ansible-playbook -i inventory.ini tasks/install-packages-MATRIX.yml -l MATRIX
+                ansible-playbook -i inventory.ini tasks/install-packages-EMACS30.yml -l EMACS30
 
