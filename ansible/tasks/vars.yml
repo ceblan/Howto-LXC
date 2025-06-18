@@ -1,7 +1,8 @@
 my_variable: "Hello, World!"
 uberrimus_username: "carlos"
 emacs_username: "carlos"
-tsc_username: "concesion"
+tsc_username: "tsc"
+lxc_username: "carlos"
 una_variable_port: 22
 services:
   - name: nginx

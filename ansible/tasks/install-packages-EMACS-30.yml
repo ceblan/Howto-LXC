@@ -1,0 +1,72 @@
+---
+- name: Set up EMACS-30 packages
+  hosts: all # here should be tsc-host-1 instead
+  become_method: sudo
+  become: true
+  #vars_prompt:
+    #- name: "ansible_become_pass"
+      #prompt: "Enter your sudo password in remote server"
+      #private: yes
+
+
+  tasks:
+    # - name: apt update
+    #   become: yes
+    #   command: apt update
+
+    - name: avoid tshark config to block installation #esto es para que no pregunte lo del setuid y se bloquee
+      become: yes
+      shell: echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
+
+    - name: Set APT to not install recommended packages
+      copy:
+        dest: /etc/apt/apt.conf.d/01norecommend
+        content: |
+          APT::Install-Recommends "0";
+          APT::Install-Suggests "0";
+
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      become: yes
+      become_method: sudo
+      apt:
+        name:
+          - vim
+          - munin
+          - munin-node
+          - psmisc
+          - daemon
+          - acl
+          - rsyslog-relp
+          - net-tools
+          - htop
+          - socat
+          - python3-pip
+          - make
+          - gcc
+          - libglib2.0-dev
+          - bash-completion
+          - libssl-dev
+          - libpq-dev
+          - libsqlite3-dev
+          - libjpeg-dev
+          - libpng-dev
+          - libcurl4-openssl-dev
+          - liblivemedia-dev
+          - libavcodec-dev
+          - libavformat-dev
+          - libswscale-dev
+          - g++
+          - libmodbus-dev
+          - libgtop2-dev
+          - libgtk-3-dev
+          - libhiredis-dev
+          - libjansson-dev
+          - libjson-glib-dev
+          - json-glib-tools
+          - gawk
+        state: present
+        install_recommends: no
