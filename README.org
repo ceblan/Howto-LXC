@@ -13,20 +13,21 @@
 #+title: LXC Containers
 #+filetags: :LXC:
 
-* RSS LXC Containers
+* DEBIAN 12 LXC Containers for dockerized patroni postgres 
 
-This note contains some recipes for creating and configuring LXC containers to
-run:
-
-1. pg-node1.
+This note contains some recipes for creating and configuring three LXC
+containers to run patroni postgres16 + etcd docker containers
 
 ** pg-node1 setup
 
-We split the pg-node1 set up in three stages, each one with its own ansible
+We split the pg-node1 set up in five stages, each one with its own ansible
 playbook:
 
 1. [[id:214611e0-4085-451e-bfb1-fba2f6a2152e][pg-node1 lxc playbook]]
 2. [[id:6a9266c3-768a-4d72-8248-38aaae095445][pg-node1 packages installation]]
+3. [[id:31a265bd-879f-4e80-b4a4-31d783ca7eb8][pg-node1 initial setuo]]
+4. [[id:b8a3c216-048c-4099-b33e-fd55d1a01ae8][pg-node1 patroni configuration]]
+5. [[id:7597e9ef-17bd-47cb-91c0-8ed472b4bf24][pg-node1 docker-compose setup]]
 
 *** pg-node1 LXC initial setup
 
@@ -698,87 +699,94 @@ Instalation of Package requirements
     - name: Update apt package index
       apt:
         update_cache: yes
-end_src
+#+end_src
 
-*** Notes:
+***** Notes:
 
-
- Run the playbook with:
- #+begin_src shell :tangle no
-   cd ansible 
-   ansible-playbook -i inventory.ini tasks/install-packages-pg-node.yml -l pg-node1
- #+end_src
-
-
-
-* Prepara los nodos
+  
+1. Run the playbook with:
+   #+begin_src shell :tangle no
+     cd ansible 
+     ansible-playbook -i inventory.ini tasks/install-packages-pg-node.yml -l pg-node1
+   #+end_src
 
 
 
-begin_src yaml :tangle ansible/tasks/01-prepara_pg_node.yml
--
-ansible_pg_cluster/01-prepare-nodes.yml
+*** Prepara los nodos
+:PROPERTIES:
+:ID:       31a265bd-879f-4e80-b4a4-31d783ca7eb8
+:END:
 
-name: 1. Preparar nodos para el clúster PostgreSQL
-hosts: postgres_nodes
-become: yes # Necesitamos ser superusuario (sudo)
-vars_files:
-  - vars.yml
 
-tasks:
-  - name: Asegurar que los directorios del clúster existen
-    ansible.builtin.file:
-      path: "{{ item }}"
-      state: directory
-      owner: "{{ ansible_user }}" # El mismo usuario que usa Ansible
-      group: "{{ ansible_user }}"
-      mode: '0755'
-    loop:
-      - "{{ pg_cluster_base_dir }}"
-      - "{{ pg_cluster_base_dir }}/patroni"
+#+begin_src yaml :tangle ansible/tasks/01-prepara_pg_node.yml
+---
+# ansible_pg_cluster/01-prepare-nodes.yml
 
-  - name: Añadir todos los nodos del clúster a /etc/hosts
-    ansible.builtin.blockinfile:
-      path: /etc/hosts
-      block: |
-        # Bloque gestionado por Ansible para el clúster de PostgreSQL
-        {% for host in groups['postgres_nodes'] %}
-        {{ hostvars[host]['node_ip'] }}  {{ hostvars[host]['node_name'] }}
-        {% endfor %}
-      marker: "# {mark} ANSIBLE MANAGED BLOCK - PG CLUSTER"
-    notify: Restart network (or just ignore if not needed)
+- name: 1. Preparar nodos para el clúster PostgreSQL
+  hosts: postgres_nodes
+  become: yes # Necesitamos ser superusuario (sudo)
+  vars_files:
+    - vars.yml
 
-handlers:
-  - name: Restart network (or just ignore if not needed)
-    ansible.builtin.debug:
-      msg: "El fichero /etc/hosts ha sido modificado. No se requiere reinicio."
-end_src
+  tasks:
+    - name: Asegurar que los directorios del clúster existen
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}" # El mismo usuario que usa Ansible
+        group: "{{ ansible_user }}"
+        mode: '0755'
+      loop:
+        - "{{ pg_cluster_base_dir }}"
+        - "{{ pg_cluster_base_dir }}/patroni"
 
-* Configuración de patroni
+    - name: Añadir todos los nodos del clúster a /etc/hosts
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          # Bloque gestionado por Ansible para el clúster de PostgreSQL
+          {% for host in groups['postgres_nodes'] %}
+          {{ hostvars[host]['node_ip'] }}  {{ hostvars[host]['node_name'] }}
+          {% endfor %}
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - PG CLUSTER"
+      notify: Restart network (or just ignore if not needed)
 
-begin_src yaml :tangle ansible/tasks/02-configura-patroni.yml
--
-ansible_pg_cluster/02-configure-patroni.yml
+  handlers:
+    - name: Restart network (or just ignore if not needed)
+      ansible.builtin.debug:
+        msg: "El fichero /etc/hosts ha sido modificado. No se requiere reinicio."
+#+end_src
 
-name: 2. Configurar Patroni en todos los nodos
-hosts: postgres_nodes
-become: yes
-vars_files:
-  - vars.yml
+*** Configuración de patroni
+:PROPERTIES:
+:ID:       b8a3c216-048c-4099-b33e-fd55d1a01ae8
+:END:
 
-tasks:
-  - name: Desplegar el fichero de configuración patroni.yml desde la plantilla
-    ansible.builtin.template:
-      src: templates/patroni.yml.j2
-      dest: "{{ pg_cluster_base_dir }}/patroni/patroni.yml"
-      owner: "{{ ansible_user }}"
-      group: "{{ ansible_user }}"
-      mode: '0644'
+#+begin_src yaml :tangle ansible/tasks/02-configura-patroni.yml
+---
+# ansible_pg_cluster/02-configure-patroni.yml
+
+- name: 2. Configurar Patroni en todos los nodos
+  hosts: postgres_nodes
+  become: yes
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Desplegar el fichero de configuración patroni.yml desde la plantilla
+      ansible.builtin.template:
+        src: templates/patroni.yml.j2
+        dest: "{{ pg_cluster_base_dir }}/patroni/patroni.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
 
 #+end_src
 
 *** Configura docker-compose
-
+:PROPERTIES:
+:ID:       7597e9ef-17bd-47cb-91c0-8ed472b4bf24
+:END:
 
 #+begin_src yaml :tangle ansible/tasks/03-configura-docker-compose.yml
   ---
