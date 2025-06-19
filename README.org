@@ -25,7 +25,7 @@ playbook:
 
 1. [[id:214611e0-4085-451e-bfb1-fba2f6a2152e][pg-node1 lxc playbook]]
 2. [[id:6a9266c3-768a-4d72-8248-38aaae095445][pg-node1 packages installation]]
-3. [[id:31a265bd-879f-4e80-b4a4-31d783ca7eb8][pg-node1 initial setuo]]
+3. [[id:31a265bd-879f-4e80-b4a4-31d783ca7eb8][pg-node1 initial setup]]
 4. [[id:b8a3c216-048c-4099-b33e-fd55d1a01ae8][pg-node1 patroni configuration]]
 5. [[id:7597e9ef-17bd-47cb-91c0-8ed472b4bf24][pg-node1 docker-compose setup]]
 
