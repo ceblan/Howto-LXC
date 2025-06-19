@@ -3,7 +3,7 @@
 
 print_help (){
 	echo "Uso: "
-	echo "  -l pg_nodeX (donde X está [1 2 3])"
+	echo "  -l pg_nodeX (donde X está [1 2 3 4])"
 	echo "  -a (esto arranca los tres nodos configurados)"
 	echo "bye!"
 	exit 1
@@ -18,9 +18,9 @@ crea_nodo (){
 	echo "Creando nodo: $node en $(pwd)"
 	ansible-playbook -i inventory.ini tasks/create-lxc-pg-node.yml --extra-vars "DEST=${node}"
 	ansible-playbook -i inventory.ini tasks/install-packages-pg-node.yml -l ${node}
-	ansible-playbook -i inventory.ini tasks/01-prepara_pg_node.yml -l ${node}
-	ansible-playbook -i inventory.ini tasks/02-configura-patroni.yml -l ${node}
-	ansible-playbook -i inventory.ini tasks/03-configura-docker-compose.yml -l ${node}
+	# ansible-playbook -i inventory.ini tasks/01-prepara_pg_node.yml -l ${node}
+	# ansible-playbook -i inventory.ini tasks/02-configura-patroni.yml -l ${node}
+	# ansible-playbook -i inventory.ini tasks/03-configura-docker-compose.yml -l ${node}
 	echo "Nodo: $node Creado con éxito"
 	cd -
 }

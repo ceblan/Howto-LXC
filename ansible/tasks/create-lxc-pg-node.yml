@@ -1,6 +1,6 @@
 ---
 - name: Set up LXC container for a {{ DEST }}
-  hosts: pindaro # here should be tsc-host-1 instead
+  hosts: urganda # here should be tsc-host-1 instead
   become: yes
   vars_files:
     - vars.yml
@@ -8,7 +8,7 @@
 
   tasks:
     - name: Install LXC
-      dnf:
+      apt:
         name: lxc
         state: present
         update_cache: yes
