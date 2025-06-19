@@ -11,7 +11,7 @@ print_help (){
 
 PWD=$(pwd)
 ansible_dir=${PWD}/../ansible
-nodos=("pg-node1" "pg-node2" "pg-node3")
+nodos=("pg-node1" "pg-node2" "pg-node3" "pg-node4")
 
 crea_nodo (){
 
