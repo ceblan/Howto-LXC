@@ -1,7 +1,7 @@
 ---
 
 - name: Set up node packages
-  hosts: postgres_nodes # here should be tsc-host-1 instead
+  hosts: postgres_nodes, haproxy_server
   become_method: sudo
   become: true
   #vars_prompt:

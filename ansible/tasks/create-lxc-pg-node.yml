@@ -85,9 +85,9 @@
       register: tsc_exists
       ignore_errors: yes
 
-    # - name: Output inventory sources
-    #   debug:
-    #     var: hostvars[inventory_hostname]['ansible_inventory_sources']
+    - name: Output inventory sources
+      debug:
+        var: hostvars[inventory_hostname]['ansible_inventory_sources']
 
     # - name: Output tsc_exists
     #   debug:

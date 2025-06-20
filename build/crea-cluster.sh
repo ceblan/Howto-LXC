@@ -3,24 +3,29 @@
 
 print_help (){
 	echo "Uso: "
-	echo "  -l pg_nodeX (donde X está [1 2 3 4])"
-	echo "  -a (esto arranca los tres nodos configurados)"
+	echo "  -l pg_nodeX (donde X está [1 2 3 4]) para crear un solo nodo"
+	echo "  -a (esto crea todos los nodos de patroni)"
+	echo "  -p (esto crea el nodo de HAProxy)"
 	echo "bye!"
 	exit 1
 }
 
 PWD=$(pwd)
 ansible_dir=${PWD}/../ansible
-nodos=("pg-node1" "pg-node2" "pg-node3")
+nodos=("pg-node1" "pg-node2" "pg-node3" "frutos" "haproxy-01")
 
 crea_nodo (){
 
 	echo "Creando nodo: $node en $(pwd)"
 	# ansible-playbook -i inventory.ini tasks/create-lxc-pg-node.yml --extra-vars "DEST=${node}"
 	ansible-playbook -i inventory.ini tasks/install-packages-pg-node.yml -l ${node}
-	ansible-playbook -i inventory.ini tasks/01-prepara_pg_node.yml -l ${node}
-	ansible-playbook -i inventory.ini tasks/02-configura-patroni.yml -l ${node}
-	ansible-playbook -i inventory.ini tasks/03-configura-docker-compose.yml -l ${node}
+	if [ ${node} ==  haproxy-01 ]; then
+		ansible-playbook -i inventory.ini tasks/04-configura-haproxy.yml -l ${node}
+	else
+		ansible-playbook -i inventory.ini tasks/01-prepara_pg_node.yml -l ${node}
+		ansible-playbook -i inventory.ini tasks/02-configura-patroni.yml -l ${node}
+		ansible-playbook -i inventory.ini tasks/03-configura-docker-compose.yml -l ${node}
+	fi
 	echo "Nodo: $node Creado con éxito"
 	cd -
 }
@@ -42,7 +47,7 @@ if [ "$#" -lt 1 ] || [[ "$1" != -* ]]; then
   print_help
   exit 1 # Salir del script con un código de error (convencionalmente, 1 indica error)
  else
-	while getopts l:ah flag
+	while getopts p:l:ah flag
 	do
 		case "${flag}" in
 			a)
@@ -56,6 +61,12 @@ if [ "$#" -lt 1 ] || [[ "$1" != -* ]]; then
 				valida_nodo
 				exit 0
 				;;
+			p)
+				node=${OPTARG}
+				valida_nodo
+				exit 0
+				;;
+
 			h)
 				print_help
 				;;
