@@ -22,23 +22,26 @@
         mode: '0755'
 
     - name: Template HAProxy configuration file
-      template:
+      become: yes
+      ansible.builtin.template:
         src: haproxy.cfg.j2
         dest: "{{ haproxy_config_dir }}/haproxy.cfg"
-      notify: Restart HAProxy container
 
-    - name: Template Docker Compose file for HAProxy
-      template:
-        src: docker-compose.haproxy.yml.j2
+    - name: Desplegar el fichero docker-compose.yml desde la plantilla
+      become: yes
+      ansible.builtin.template:
+        src: templates/docker-compose.haproxy.yml.j2
         dest: "{{ haproxy_config_dir }}/docker-compose.yml"
-      notify: Restart HAProxy container
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
 
-    - name: Deploy HAProxy container using Docker Compose
-      community.docker.docker_compose:
-        project_src: "{{ haproxy_config_dir }}"
-        state: present # Ensures the services are running
-        pull: yes # Pulls the latest image if not present or specified 'latest'
-      register: haproxy_compose_output
+    # - name: Deploy HAProxy container using Docker Compose
+    #   community.docker.docker_compose:
+    #     project_src: "{{ haproxy_config_dir }}"
+    #     state: present # Ensures the services are running
+    #     pull: yes # Pulls the latest image if not present or specified 'latest'
+    #   register: haproxy_compose_output
 
   # handlers:
   #   - name: Restart HAProxy container
