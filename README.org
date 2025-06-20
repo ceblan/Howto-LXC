@@ -812,3 +812,55 @@ Instalation of Package requirements
       - name: crea docker network web
         command: docker network create web
 #+end_src
+
+*** Configura HAProxy
+
+#+begin_src yaml :tangle ansible/tasks/04-configura-haproxy.yml
+---
+# deploy_haproxy.yml
+- hosts: haproxy_server
+  become: yes
+  vars:
+    haproxy_listen_port_rw: 5000
+    haproxy_stats_port: 8404
+    haproxy_stats_user: "admin"
+    haproxy_stats_password: "sociedad" # ¡CAMBIA ESTO y usa Vault!
+    patroni_api_port: 8008
+
+    # Directorio de configuración para HAProxy en el host
+    haproxy_config_dir: /opt/ansible_managed_configs/haproxy
+
+  tasks:
+
+     # deploy_haproxy.yml
+    - name: Create HAProxy configuration directory on host
+      file:
+        path: "{{ haproxy_config_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Template HAProxy configuration file
+      template:
+        src: haproxy.cfg.j2
+        dest: "{{ haproxy_config_dir }}/haproxy.cfg"
+      notify: Restart HAProxy container
+
+    - name: Template Docker Compose file for HAProxy
+      template:
+        src: docker-compose.haproxy.yml.j2
+        dest: "{{ haproxy_config_dir }}/docker-compose.yml"
+      notify: Restart HAProxy container
+
+    - name: Deploy HAProxy container using Docker Compose
+      community.docker.docker_compose:
+        project_src: "{{ haproxy_config_dir }}"
+        state: present # Ensures the services are running
+        pull: yes # Pulls the latest image if not present or specified 'latest'
+      register: haproxy_compose_output
+
+  handlers:
+    - name: Restart HAProxy container
+      community.docker.docker_compose:
+        project_src: "{{ haproxy_config_dir }}"
+        restarted: yes # Restarts all services in the compose file
+#+end_src
