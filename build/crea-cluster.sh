@@ -78,15 +78,3 @@ if [ "$#" -lt 1 ] || [[ "$1" != -* ]]; then
 	done
 fi
 
-
-
-
-
-# if [ "$#" -lt 1 ]; then
-#   echo "Error: Debes proporcionar qué nodo/s arrancar."
-#   print_help
-#   exit 1 # Salir del script con un código de error (convencionalmente, 1 indica error)
-# else
-# 	echo "por aquí"
-# 	get_params
-# fi
