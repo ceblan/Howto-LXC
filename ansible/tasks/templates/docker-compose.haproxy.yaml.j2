@@ -1,0 +1,22 @@
+services:
+  haproxy:
+    image: haproxy:2.8 # O la versión que prefieras, ej: haproxy:latest
+    container_name: haproxy
+    restart: unless-stopped
+    ports:
+      - "{{ haproxy_listen_port_rw }}:{{ haproxy_listen_port_rw }}"
+      - "{{ haproxy_stats_port }}:{{ haproxy_stats_port }}"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    # Si tus nodos Patroni están en una red Docker específica a la que HAProxy
+    # también necesita unirse (por ejemplo, si no expones los puertos de Patroni
+    # al host directamente), podrías añadir una configuración de red aquí.
+    # Pero si los puertos de Patroni (5432, 8008) están expuestos en las IPs
+    # de sus hosts (node_ip), esto no es estrictamente necesario.
+    # networks:
+    #   - some_shared_network
+
+networks:
+  web:
+    external: true # Si la red ya existe
+#
