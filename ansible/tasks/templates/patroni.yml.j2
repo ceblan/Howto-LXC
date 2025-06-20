@@ -37,7 +37,8 @@ bootstrap:
     - data-checksums
   pg_hba:
     - host replication replicator 127.0.0.1/32 md5
-    - host replication replicator 10.0.5.0/24 md5
+    - host replication replicator 10.0.3.0/24 md5
+    - host replication replicator 192.168.101.0/24 md5
     - host replication replicator 172.19.0.0/12 md5  # ← Si usas redes Docker
     - host replication replicator 172.18.0.0/12 md5  # ← Si usas redes Docker
     - host all all 0.0.0.0/0 md5
