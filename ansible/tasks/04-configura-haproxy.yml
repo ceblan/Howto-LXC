@@ -10,7 +10,7 @@
     patroni_api_port: 8008
 
     # Directorio de configuración para HAProxy en el host
-    haproxy_config_dir: /opt/ansible_managed_configs/haproxy
+    haproxy_config_dir: /opt/haproxy
 
   tasks:
 
